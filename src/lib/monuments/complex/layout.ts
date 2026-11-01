@@ -1,6 +1,16 @@
-import { PYRAMIDS, SPHINX_PLACEMENT } from '../../data/layout.ts';
+import { GIS_MASTABAS } from '../../data/giza-gis.ts';
+import { SPHINX_PLACEMENT } from '../../data/layout.ts';
+import {
+	ESTIMATED_HEIGHTS,
+	PLAN_FEATURES,
+	type PlanPoint,
+	type PlanRectangle,
+	WRITTEN_FEATURES
+} from './plan-features.ts';
 
-export type RuinMaterial = 'limestone' | 'basalt' | 'granite';
+export type RuinMaterial = 'limestone' | 'basalt' | 'granite' | 'pit';
+
+export type RuinSource = 'gis' | 'plan' | 'written';
 
 export interface RuinBlock {
 	x: number;
@@ -11,12 +21,13 @@ export interface RuinBlock {
 	rotation: number;
 	material: RuinMaterial;
 	batter: number;
+	source: RuinSource;
 }
 
 export interface Causeway {
-	from: { x: number; z: number };
-	to: { x: number; z: number };
+	points: readonly PlanPoint[];
 	width: number;
+	source: RuinSource;
 }
 
 export interface ComplexLayout {
@@ -24,10 +35,8 @@ export interface ComplexLayout {
 	causeways: Causeway[];
 }
 
-export const CEMETERIES = {
-	west: { minX: -470, maxX: -170, minZ: -260, maxZ: 120, length: 22, width: 11, height: 4.5, gap: 9 },
-	east: { minX: 245, maxX: 345, minZ: -25, maxZ: 175, length: 34, width: 16, height: 5.5, gap: 10 }
-} as const;
+const HEIGHTS = ESTIMATED_HEIGHTS.value;
+const PLAN = PLAN_FEATURES.value;
 
 function random(seed: number): () => number {
 	let state = seed >>> 0;
@@ -42,12 +51,10 @@ function random(seed: number): () => number {
 
 function ruinedEnclosure(
 	next: () => number,
-	cx: number,
-	cz: number,
-	width: number,
-	depth: number,
+	rectangle: PlanRectangle,
 	wallHeight: number,
-	material: RuinMaterial
+	material: RuinMaterial,
+	source: RuinSource
 ): RuinBlock[] {
 	const walls: RuinBlock[] = [];
 	const thickness = 3;
@@ -66,68 +73,131 @@ function ruinedEnclosure(
 				height: wallHeight * (0.25 + next() * 0.75),
 				rotation: 0,
 				material,
-				batter: 0.05
+				batter: 0.05,
+				source
 			});
 		}
 	};
-	const hx = width / 2;
-	const hz = depth / 2;
-	addWall(cx - hx, cz - hz, cx + hx, cz - hz);
-	addWall(cx - hx, cz + hz, cx + hx, cz + hz);
-	addWall(cx - hx, cz - hz, cx - hx, cz + hz);
-	addWall(cx + hx, cz - hz, cx + hx, cz + hz);
+	const { minX, maxX, minZ, maxZ } = rectangle;
+	addWall(minX, minZ, maxX, minZ);
+	addWall(minX, maxZ, maxX, maxZ);
+	addWall(minX, minZ, minX, maxZ);
+	addWall(maxX, minZ, maxX, maxZ);
 	return walls;
 }
 
-function mastabaField(next: () => number, field: (typeof CEMETERIES)[keyof typeof CEMETERIES]): RuinBlock[] {
+function centeredRectangle(center: PlanPoint, width: number, depth: number): PlanRectangle {
+	return {
+		minX: center.x - width / 2,
+		maxX: center.x + width / 2,
+		minZ: center.z - depth / 2,
+		maxZ: center.z + depth / 2
+	};
+}
+
+function westCemetery(next: () => number): RuinBlock[] {
+	const field = PLAN.westCemetery;
+	const size = PLAN.westMastaba;
 	const blocks: RuinBlock[] = [];
-	for (let x = field.minX; x + field.width <= field.maxX; x += field.width + field.gap) {
-		for (let z = field.minZ; z + field.length <= field.maxZ; z += field.length + field.gap) {
-			if (next() < 0.12) continue;
+	for (let x = field.minX; x + size.eastWest <= field.maxX; x += size.eastWest + size.eastWestGap) {
+		for (let z = field.minZ; z + size.northSouth <= field.maxZ; z += size.northSouth + size.northSouthGap) {
 			blocks.push({
-				x: x + field.width / 2 + (next() - 0.5) * 2,
-				z: z + field.length / 2 + (next() - 0.5) * 2,
-				width: field.width * (0.85 + next() * 0.3),
-				depth: field.length * (0.85 + next() * 0.3),
-				height: field.height * (0.55 + next() * 0.45),
+				x: x + size.eastWest / 2,
+				z: z + size.northSouth / 2,
+				width: size.eastWest,
+				depth: size.northSouth,
+				height: HEIGHTS.mastaba * (0.7 + next() * 0.3),
 				rotation: 0,
 				material: 'limestone',
-				batter: 0.18
+				batter: 0.18,
+				source: 'plan'
 			});
 		}
 	}
 	return blocks;
 }
 
+function eastCemetery(next: () => number): RuinBlock[] {
+	return GIS_MASTABAS.map((mastaba) => ({
+		x: mastaba.x,
+		z: mastaba.z,
+		width: mastaba.width,
+		depth: mastaba.depth,
+		height: HEIGHTS.mastaba * (0.7 + next() * 0.3),
+		rotation: mastaba.rotation,
+		material: 'limestone',
+		batter: 0.18,
+		source: 'gis'
+	}));
+}
+
 export function buildComplexLayout(seed = 2600): ComplexLayout {
 	const next = random(seed);
-	const [khufu, khafre, menkaure] = PYRAMIDS;
-	const east = (pyramid: (typeof PYRAMIDS)[number], offset: number) => pyramid.x + pyramid.baseX / 2 + offset;
-	const valleyTemple = { x: SPHINX_PLACEMENT.x + 15, z: SPHINX_PLACEMENT.z + 70 };
+	const valleyTemple = {
+		x: SPHINX_PLACEMENT.x + WRITTEN_FEATURES.value.khafreValleyTempleFromSphinx.x,
+		z: SPHINX_PLACEMENT.z + WRITTEN_FEATURES.value.khafreValleyTempleFromSphinx.z
+	};
 	const blocks: RuinBlock[] = [
-		{ x: east(khufu, 24), z: khufu.z, width: 40, depth: 52, height: 0.6, rotation: 0, material: 'basalt', batter: 0 },
-		...ruinedEnclosure(next, east(khufu, 24), khufu.z, 44, 56, 3, 'limestone'),
-		...ruinedEnclosure(next, east(khafre, 55), khafre.z, 100, 55, 5, 'limestone'),
-		...ruinedEnclosure(next, east(menkaure, 35), menkaure.z, 55, 45, 4, 'limestone'),
-		...ruinedEnclosure(next, valleyTemple.x, valleyTemple.z, 45, 45, 7, 'granite'),
-		...mastabaField(next, CEMETERIES.west),
-		...mastabaField(next, CEMETERIES.east)
+		{
+			...PLAN.khufuTemple,
+			width: 40,
+			depth: 52,
+			height: HEIGHTS.pavement,
+			rotation: 0,
+			material: 'basalt',
+			batter: 0,
+			source: 'plan'
+		},
+		...ruinedEnclosure(
+			next,
+			centeredRectangle(PLAN.khufuTemple, 44, 56),
+			HEIGHTS.templeWall * 0.75,
+			'limestone',
+			'plan'
+		),
+		...PLAN.khufuBoatPits.map((pit) => ({
+			x: (pit.minX + pit.maxX) / 2,
+			z: (pit.minZ + pit.maxZ) / 2,
+			width: pit.maxX - pit.minX,
+			depth: pit.maxZ - pit.minZ,
+			height: 0.25,
+			rotation: 0,
+			material: 'pit' as const,
+			batter: 0,
+			source: 'plan' as const
+		})),
+		...ruinedEnclosure(next, PLAN.khafreTemple, HEIGHTS.templeWall * 1.25, 'limestone', 'plan'),
+		...ruinedEnclosure(next, PLAN.menkaureTemple, HEIGHTS.templeWall, 'limestone', 'plan'),
+		...ruinedEnclosure(next, centeredRectangle(valleyTemple, 45, 45), HEIGHTS.valleyTempleWall, 'granite', 'written'),
+		...westCemetery(next),
+		...eastCemetery(next)
 	];
 	const causeways: Causeway[] = [
-		{ from: { x: east(khufu, 55), z: khufu.z - 10 }, to: { x: 780, z: -260 }, width: 8 },
-		{ from: { x: east(khafre, 105), z: khafre.z }, to: { x: valleyTemple.x - 22, z: valleyTemple.z }, width: 6 },
-		{ from: { x: east(menkaure, 62), z: menkaure.z }, to: { x: -60, z: 790 }, width: 6 }
+		{ points: PLAN.khufuCauseway, width: 8, source: 'plan' },
+		{ points: [...PLAN.khafreCauseway, { x: valleyTemple.x - 22, z: valleyTemple.z }], width: 6, source: 'plan' },
+		{ points: PLAN.menkaureCauseway, width: 6, source: 'plan' }
 	];
 	return { blocks, causeways };
 }
 
 export function complexExclusions(layout: ComplexLayout): { x: number; z: number; halfX: number; halfZ: number }[] {
-	const fields = Object.values(CEMETERIES).map((field) => ({
-		x: (field.minX + field.maxX) / 2,
-		z: (field.minZ + field.maxZ) / 2,
-		halfX: (field.maxX - field.minX) / 2 + 4,
-		halfZ: (field.maxZ - field.minZ) / 2 + 4
-	}));
+	const west = PLAN.westCemetery;
+	const eastXs = GIS_MASTABAS.map((mastaba) => mastaba.x);
+	const eastZs = GIS_MASTABAS.map((mastaba) => mastaba.z);
+	const fields = [
+		{
+			x: (west.minX + west.maxX) / 2,
+			z: (west.minZ + west.maxZ) / 2,
+			halfX: (west.maxX - west.minX) / 2 + 4,
+			halfZ: (west.maxZ - west.minZ) / 2 + 4
+		},
+		{
+			x: (Math.min(...eastXs) + Math.max(...eastXs)) / 2,
+			z: (Math.min(...eastZs) + Math.max(...eastZs)) / 2,
+			halfX: (Math.max(...eastXs) - Math.min(...eastXs)) / 2 + 30,
+			halfZ: (Math.max(...eastZs) - Math.min(...eastZs)) / 2 + 50
+		}
+	];
 	const structures = layout.blocks
 		.filter((block) => block.batter < 0.1)
 		.map((block) => ({ x: block.x, z: block.z, halfX: block.width / 2 + 3, halfZ: block.depth / 2 + 3 }));

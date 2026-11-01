@@ -1,4 +1,6 @@
-export const STONE = { core: 0, casing: 1, granite: 2, recess: 3 } as const;
+export const STONE = { core: 0, casing: 1, granite: 2, recess: 3, roughCore: 4 } as const;
+
+const SMOOTH_BAND = 4;
 
 const MAX_SETBACK = 0.22 + 1.5 + 1;
 
@@ -25,7 +27,8 @@ export interface PyramidDesign {
 	baseX: number;
 	baseZ: number;
 	originalHeight: number;
-	courses: readonly number[];
+	courses: readonly number[] | null;
+	height?: number;
 	coreInset: number;
 	concavity: number;
 	missingRate: number;
@@ -135,11 +138,12 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 	const builder = new MeshBuilder();
 	const bottoms: number[] = [];
 	let total = 0;
-	for (const thickness of design.courses) {
+	for (const thickness of design.courses ?? []) {
 		bottoms.push(total);
 		total += thickness;
 	}
-	const height = total;
+	const height = design.courses ? total : (design.height ?? 0);
+	if (height <= 0) throw new Error('A smooth pyramid design needs a height');
 	const halfAt = (y: number, base: number) => (base / 2) * (1 - y / design.originalHeight);
 	const slopeNormal = (side: (typeof SIDES)[number], base: number): [number, number, number] => {
 		const rise = base / 2 / design.originalHeight;
@@ -167,7 +171,77 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 			side.tangent[1] * alongValue + side.normal[1] * outward
 		];
 
-		design.courses.forEach((thickness, courseIndex) => {
+		if (!design.courses) {
+			const bands = Math.max(1, Math.ceil(height / SMOOTH_BAND));
+			const columns = Math.max(4, Math.round(spanBase / design.segmentLength));
+			const bandY = (band: number) => (band * height) / bands;
+			const edge = (y: number, u: number) => (u * 2 - 1) * (halfAt(y, spanBase) - design.coreInset);
+			const surface = (y: number) => halfAt(y, depthBase) - design.coreInset;
+			const notchAt = (column: number, band: number) => {
+				if (column < 0 || column >= columns || band < 0 || band >= bands) return null;
+				const y = (bandY(band) + bandY(band + 1)) / 2;
+				const along = edge(y, (column + 0.5) / columns);
+				return (
+					sideNotches.find(
+						(notch) => Math.abs(along - notch.center) < notch.width / 2 && y > notch.bottom && y < notch.top
+					) ?? null
+				);
+			};
+			const isCovered = (column: number, band: number) => {
+				const u = (column + 0.5) / columns;
+				const y0 = bandY(band);
+				const y1 = bandY(band + 1);
+				return sideCasings.some(
+					({ casing, phase }) =>
+						casingCovers(casing, phase, u) &&
+						y0 >= casingStart(casing, phase, u) &&
+						(casing.until === undefined || y1 <= casing.until)
+				);
+			};
+			const normal = slopeNormal(side, depthBase);
+			for (let band = 0; band < bands; band++) {
+				const y0 = bandY(band);
+				const y1 = bandY(band + 1);
+				for (let column = 0; column < columns; column++) {
+					if (isCovered(column, band)) continue;
+					const u0 = column / columns;
+					const u1 = (column + 1) / columns;
+					const notch = notchAt(column, band);
+					const depth = notch ? notch.depth : 0;
+					const material = notch ? STONE.recess : STONE.roughCore;
+					const at = (y: number, u: number) => point(edge(y, u), surface(y) - depth, y);
+					builder.quad(
+						[at(y0, u0), at(y0, u1), at(y1, u1), at(y1, u0)],
+						normal,
+						material,
+						[edge(y0, u0), edge(y0, u1), edge(y1, u1), edge(y1, u0)],
+						[0.5, 0.5, 0.5, 0.5],
+						-1
+					);
+					if (!notch) continue;
+					const outer = (y: number, u: number) => point(edge(y, u), surface(y), y);
+					const walls: [boolean, [number, number], [number, number], [number, number, number]][] = [
+						[!notchAt(column - 1, band), [y0, u0], [y1, u0], [side.tangent[0], 0, side.tangent[1]]],
+						[!notchAt(column + 1, band), [y0, u1], [y1, u1], [-side.tangent[0], 0, -side.tangent[1]]],
+						[!notchAt(column, band - 1), [y0, u0], [y0, u1], [0, 1, 0]],
+						[!notchAt(column, band + 1), [y1, u0], [y1, u1], [0, -1, 0]]
+					];
+					for (const [open, [ya, ua], [yb, ub], wallNormal] of walls) {
+						if (!open) continue;
+						builder.quad(
+							[outer(ya, ua), outer(yb, ub), at(yb, ub), at(ya, ua)],
+							wallNormal,
+							STONE.recess,
+							[0, 0, 0, 0],
+							[0.5, 0.5, 0.5, 0.5],
+							-1
+						);
+					}
+				}
+			}
+		}
+
+		(design.courses ?? []).forEach((thickness, courseIndex) => {
 			const y0 = bottoms[courseIndex];
 			const y1 = y0 + thickness;
 			const half = halfAt(y0, depthBase) - design.coreInset;
@@ -293,22 +367,8 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 			STONE.core,
 			[-topX, topX, topX, -topX],
 			[1, 1, 1, 1],
-			design.courses.length - 1
+			(design.courses?.length ?? 1) - 1
 		);
 	}
 	return builder.build(height);
-}
-
-export function schematicCourses(height: number, bottom: number, top: number, seed: number): number[] {
-	const next = random(seed);
-	const courses: number[] = [];
-	let total = 0;
-	while (total < height) {
-		const t = total / height;
-		const thickness = bottom + (top - bottom) * t + (next() - 0.5) * 0.25 * bottom;
-		courses.push(Math.max(0.45, thickness));
-		total += courses[courses.length - 1];
-	}
-	const scale = height / total;
-	return courses.map((thickness) => thickness * scale);
 }

@@ -51,7 +51,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 	const riser = oneMinus(smoothstep(0.35, 0.75, abs(normalWorld.y)));
 	const verticalJoint = oneMinus(smoothstep(0.02, 0.06, edge)).mul(riser);
 	const bedJoint = oneMinus(smoothstep(0.03, 0.09, courseV)).mul(riser);
-	const joint = max(verticalJoint, bedJoint);
+	const joint = max(verticalJoint, bedJoint).mul(select(stone.greaterThan(STONE.roughCore - 0.5), float(0), float(1)));
 	const blockTone = hash(course.mul(13.7).add(blockIndex.mul(1.37)));
 	const grain = mx_noise_float(p.mul(0.8))
 		.mul(0.5)
@@ -88,7 +88,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 	);
 
 	material.colorNode = select(
-		stone.lessThan(STONE.casing - 0.5),
+		stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
 		vec3(coreFinal),
 		select(
 			stone.lessThan(STONE.granite - 0.5),
@@ -97,7 +97,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 		)
 	);
 	material.roughnessNode = select(
-		stone.lessThan(STONE.casing - 0.5),
+		stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
 		float(0.93),
 		select(stone.lessThan(STONE.granite - 0.5), float(0.7), float(0.55))
 	);

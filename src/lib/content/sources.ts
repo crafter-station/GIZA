@@ -85,6 +85,24 @@ export const SOURCES = {
 		year: 2026,
 		url: 'https://en.wikipedia.org/wiki/Giza_pyramid_complex'
 	},
+	birdsallLevels: {
+		author: 'Ronald Birdsall (transcription of W. M. Flinders Petrie, Plate VIII)',
+		title: 'Corrected Great Pyramid Course Elevations',
+		year: 2003,
+		url: 'https://www.ronaldbirdsall.com/gizeh/errata/levels.html'
+	},
+	digitalGiza: {
+		author: 'Giza Project, Harvard University',
+		title: 'Digital Giza: sites G1-a, G1-c, G3-a and general plan of Giza',
+		year: 2026,
+		url: 'https://giza.fas.harvard.edu/'
+	},
+	gizaVectors: {
+		author: 'Giza Project (ArcGIS Online)',
+		title: 'GIZA Vectors for Web (pyramids, shafts, Fourth Dynasty mastabas, mastabas; EPSG:32636)',
+		year: 2026,
+		url: 'https://services1.arcgis.com/qN3V93cYGMKQCOxL/ArcGIS/rest/services/GIZA_Vectors_for_Web/FeatureServer'
+	},
 	copernicusDem: {
 		author: 'European Space Agency, Airbus',
 		title: 'Copernicus DEM GLO-30 (tile N29 E031)',

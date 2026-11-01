@@ -21,3 +21,9 @@ export function createGraniteMaterial(): MeshStandardNodeMaterial {
 	);
 	return material;
 }
+
+export function createPitMaterial(): MeshStandardNodeMaterial {
+	const material = new MeshStandardNodeMaterial({ roughness: 1, metalness: 0 });
+	material.colorNode = mix(color(0x4a3a28), color(0x6b553b), saturate(mx_noise_float(positionWorld.mul(0.6)).add(0.5)));
+	return material;
+}

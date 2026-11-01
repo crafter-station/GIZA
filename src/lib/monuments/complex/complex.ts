@@ -49,29 +49,33 @@ export function causewayBlocks(
 	layout: ComplexLayout,
 	groundAt: (x: number, z: number) => number
 ): (RuinBlock & { y: number })[] {
-	return layout.causeways.flatMap((causeway) => {
-		const dx = causeway.to.x - causeway.from.x;
-		const dz = causeway.to.z - causeway.from.z;
-		const length = Math.hypot(dx, dz);
-		const count = Math.ceil(length / CAUSEWAY_STEP);
-		const rotation = Math.atan2(dx, dz);
-		return Array.from({ length: count }, (_, i) => {
-			const t = (i + 0.5) / count;
-			const x = causeway.from.x + dx * t;
-			const z = causeway.from.z + dz * t;
-			return {
-				x,
-				z,
-				y: groundAt(x, z),
-				width: causeway.width,
-				depth: length / count + 0.2,
-				height: CAUSEWAY_HEIGHT,
-				rotation,
-				material: 'limestone' as const,
-				batter: 0
-			};
-		});
-	});
+	return layout.causeways.flatMap((causeway) =>
+		causeway.points.slice(1).flatMap((to, index) => {
+			const from = causeway.points[index];
+			const dx = to.x - from.x;
+			const dz = to.z - from.z;
+			const length = Math.hypot(dx, dz);
+			const count = Math.ceil(length / CAUSEWAY_STEP);
+			const rotation = Math.atan2(dx, dz);
+			return Array.from({ length: count }, (_, i) => {
+				const t = (i + 0.5) / count;
+				const x = from.x + dx * t;
+				const z = from.z + dz * t;
+				return {
+					x,
+					z,
+					y: groundAt(x, z),
+					width: causeway.width,
+					depth: length / count + 0.2,
+					height: CAUSEWAY_HEIGHT,
+					rotation,
+					material: 'limestone' as const,
+					batter: 0,
+					source: causeway.source
+				};
+			});
+		})
+	);
 }
 
 export function createComplex(

@@ -1,4 +1,5 @@
-import { toLocal } from './geo.ts';
+import { GIS_PYRAMID_CENTERS } from './giza-gis.ts';
+import { KHUFU_SURVIVING_COURSES_M } from './khufu-courses.ts';
 import { KHAFRE, KHUFU, MENKAURE, QUEENS, SPHINX } from './pyramids.ts';
 
 export interface PyramidVolume {
@@ -18,18 +19,20 @@ export interface Footprint {
 	halfZ: number;
 }
 
+const at = (id: keyof typeof GIS_PYRAMID_CENTERS) => ({ x: GIS_PYRAMID_CENTERS[id].x, z: GIS_PYRAMID_CENTERS[id].z });
+
 export const PYRAMIDS: readonly PyramidVolume[] = [
 	{
 		id: 'khufu',
-		...KHUFU.position,
+		...at('khufu'),
 		baseX: KHUFU.baseSide.value,
 		baseZ: KHUFU.baseSide.value,
 		originalHeight: KHUFU.originalHeight.value,
-		currentHeight: KHUFU.currentHeight.value
+		currentHeight: KHUFU_SURVIVING_COURSES_M.reduce((sum, value) => sum + value, 0)
 	},
 	{
 		id: 'khafre',
-		...KHAFRE.position,
+		...at('khafre'),
 		baseX: KHAFRE.baseSide.value,
 		baseZ: KHAFRE.baseSide.value,
 		originalHeight: KHAFRE.originalHeight.value,
@@ -37,7 +40,7 @@ export const PYRAMIDS: readonly PyramidVolume[] = [
 	},
 	{
 		id: 'menkaure',
-		...MENKAURE.position,
+		...at('menkaure'),
 		baseX: MENKAURE.base.value.a,
 		baseZ: MENKAURE.base.value.b,
 		originalHeight: MENKAURE.originalHeight.value,
@@ -45,48 +48,27 @@ export const PYRAMIDS: readonly PyramidVolume[] = [
 	}
 ];
 
-const queenAt = (lat: number, lon: number) => toLocal({ lat, lon });
-const g1b = queenAt(QUEENS.g1b.value.lat, QUEENS.g1b.value.lon);
-const g3a = queenAt(QUEENS.g3a.value.lat, QUEENS.g3a.value.lon);
-const g3b = queenAt(QUEENS.g3b.value.lat, QUEENS.g3b.value.lon);
-const queen = (id: string, x: number, z: number, base: number, originalHeight: number, currentHeight: number) => ({
+const G3A_SLOPE = (52.25 * Math.PI) / 180;
+const queen = (id: keyof typeof GIS_PYRAMID_CENTERS, base: number, originalHeight: number, currentHeight: number) => ({
 	id,
-	x,
-	z,
+	...at(id),
 	baseX: base,
 	baseZ: base,
 	originalHeight,
 	currentHeight
 });
+const stepHeight = (base: number) => (base / 2) * Math.tan(G3A_SLOPE);
 
 export const QUEEN_PYRAMIDS: readonly PyramidVolume[] = [
-	queen(
-		'g1a',
-		g1b.x,
-		g1b.z - QUEENS.g1b.value.base / 2 - 10 - QUEENS.g1a.value.base / 2,
-		QUEENS.g1a.value.base,
-		QUEENS.g1a.value.height,
-		QUEENS.g1a.value.height * 0.7
-	),
-	queen('g1b', g1b.x, g1b.z, QUEENS.g1b.value.base, QUEENS.g1b.value.height, QUEENS.g1b.value.height * 0.7),
-	queen(
-		'g1c',
-		...(Object.values(queenAt(QUEENS.g1c.value.lat, QUEENS.g1c.value.lon)) as [number, number]),
-		QUEENS.g1c.value.base,
-		QUEENS.g1c.value.height,
-		QUEENS.g1c.value.height * 0.75
-	),
-	queen('g3a', g3a.x, g3a.z, QUEENS.g3a.value.base, QUEENS.g3a.value.height, QUEENS.g3a.value.current),
-	queen('g3b', g3b.x, g3b.z, QUEENS.g3b.value.base, QUEENS.g3b.value.base * 0.65, QUEENS.g3b.value.base * 0.6),
-	queen(
-		'g3c',
-		g3b.x - (g3a.x - g3b.x),
-		g3b.z,
-		QUEENS.g3b.value.base,
-		QUEENS.g3b.value.base * 0.65,
-		QUEENS.g3b.value.base * 0.55
-	)
+	queen('g1a', QUEENS.g1a.value.base, QUEENS.g1a.value.height, QUEENS.g1a.value.height),
+	queen('g1b', QUEENS.g1b.value.base, QUEENS.g1b.value.height, QUEENS.g1b.value.height),
+	queen('g1c', QUEENS.g1c.value.base, QUEENS.g1c.value.height, QUEENS.g1c.value.height),
+	queen('g3a', QUEENS.g3a.value.base, QUEENS.g3a.value.height, QUEENS.g3a.value.current),
+	queen('g3b', QUEENS.g3b.value.base, stepHeight(QUEENS.g3b.value.base), stepHeight(QUEENS.g3b.value.base)),
+	queen('g3c', QUEENS.g3b.value.base, stepHeight(QUEENS.g3b.value.base), stepHeight(QUEENS.g3b.value.base))
 ];
+
+export const RECONSTRUCTED_HEIGHTS = new Set(['g1a', 'g1b', 'g1c', 'g3b', 'g3c']);
 
 export const ALL_PYRAMIDS: readonly PyramidVolume[] = [...PYRAMIDS, ...QUEEN_PYRAMIDS];
 

@@ -178,6 +178,17 @@ export const MENKAURE = {
 	})
 } as const;
 
+export const MENKAURE_GRANITE = fact(
+	{ originalCourses: 16, originalHeight: 20, survivingCourses: 7, survivingHeight: (20 * 7) / 16 },
+	{
+		unit: 'm',
+		status: 'estimate',
+		sources: ['wikipediaGiza'],
+		checked: 'secondary',
+		note: 'The lowest 16 courses were cased in Aswan granite, rising more than 20 m; 7 courses remain. The surviving height is derived proportionally, not measured.'
+	}
+);
+
 export const QUEENS = {
 	g1a: fact(
 		{ base: 49.5, height: 30 },
@@ -248,6 +259,13 @@ export const DERIVED = {
 			note: 'Days when the noon sun at Giza stands higher than Khufu’s slope, computed with suncalc for 2026 (±1 day between years). Tested in pyramids.spec.ts.'
 		}
 	),
+	cubicMetresPerBlock: fact(KHUFU.volume.value / KHUFU.blockCount.value, {
+		unit: 'm³',
+		status: 'estimate',
+		sources: ['lehnerHawass2017', 'romer2007'],
+		checked: 'computed',
+		note: 'Volume divided by the estimated block count; used to say how many real blocks a core superblock stands for.'
+	}),
 	blocksPerDay: fact(
 		{ blocks: 2.3e6, years: 26, perDay: 242 },
 		{
