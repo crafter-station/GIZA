@@ -91,6 +91,34 @@ export const KHUFU = {
 	)
 } as const;
 
+export const KHUFU_OPENINGS = {
+	entrance: fact(
+		{ height: 17, course: 19, eastOfCenter: 7.9 },
+		{
+			unit: 'm',
+			status: 'established',
+			sources: ['wikipediaGiza', 'lehner1997'],
+			checked: 'secondary',
+			note: 'Original entrance on the north face, 15 royal cubits east of the centre line.'
+		}
+	),
+	robbersTunnel: fact(
+		{ height: 7, courses: [6, 7] },
+		{
+			unit: 'm',
+			status: 'established',
+			sources: ['wikipediaGiza'],
+			checked: 'secondary',
+			note: 'Forced through the 6th and 7th courses, traditionally attributed to al-Maʾmun (c. 820 CE). Horizontal position shown schematically below the entrance.'
+		}
+	),
+	casingRemnants: fact('A few casing stones of the lowest course remain on each side, best preserved on the north.', {
+		status: 'established',
+		sources: ['wikipediaGiza'],
+		checked: 'secondary'
+	})
+} as const;
+
 export const KHAFRE = {
 	id: 'khafre',
 	position: toLocal(MONUMENT_COORDINATES.khafre),
@@ -148,6 +176,56 @@ export const MENKAURE = {
 		checked: 'secondary',
 		note: 'Sultan al-Aziz Uthman; left the vertical gash on the north face.'
 	})
+} as const;
+
+export const QUEENS = {
+	g1a: fact(
+		{ base: 49.5, height: 30 },
+		{
+			unit: 'm',
+			status: 'estimate',
+			sources: ['wikipediaGiza'],
+			checked: 'secondary',
+			note: 'Northernmost queen pyramid, about 10 m north of G1-b; position derived from G1-b.'
+		}
+	),
+	g1b: fact(
+		{ lat: 29 + 58 / 60 + 42 / 3600, lon: 31 + 8 / 60 + 10 / 3600, base: 50, height: 30 },
+		{ unit: 'm', status: 'established', sources: ['wikipediaGiza'], checked: 'secondary' }
+	),
+	g1c: fact(
+		{ lat: 29.97785, lon: 31.1362556, base: 46.25, height: 29.6 },
+		{
+			unit: 'm',
+			status: 'established',
+			sources: ['verner2001', 'wikipediaGiza'],
+			checked: 'secondary',
+			note: 'Attributed to Queen Henutsen.'
+		}
+	),
+	g3a: fact(
+		{ lat: 29 + 58 / 60 + 18 / 3600, lon: 31 + 7 / 60 + 42 / 3600, base: 44, height: 28.4, current: 25.4 },
+		{
+			unit: 'm',
+			status: 'established',
+			sources: ['verner2001', 'lehner1997', 'wikipediaGiza'],
+			checked: 'secondary',
+			note: 'Easternmost and only true pyramid of the three.'
+		}
+	),
+	g3b: fact(
+		{ lat: 29 + 58 / 60 + 18 / 3600, lon: 31 + 7 / 60 + 40 / 3600, base: 31.24, steps: 4 },
+		{ unit: 'm', status: 'established', sources: ['verner2001', 'wikipediaGiza'], checked: 'secondary' }
+	),
+	g3c: fact(
+		{ steps: 4 },
+		{
+			status: 'estimate',
+			sources: ['wikipediaGiza'],
+			checked: 'secondary',
+			note: 'Westernmost step pyramid; size and position assumed equal to G3-b and evenly spaced.'
+		}
+	)
 } as const;
 
 export const SPHINX = {

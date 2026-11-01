@@ -2,7 +2,7 @@ import { type Box3, type Camera, Group, Mesh, Vector3 } from 'three/webgpu';
 import { decodeHeights, type TerrainHeightmapMeta } from '../../data/terrain.ts';
 import { createGroundMaterial } from '../../materials/ground.ts';
 import type { ShapedTerrain } from './shape.ts';
-import { createTileGeometry, LOD_SEGMENTS, lodForDistance, TILE_SIZE } from './tiles.ts';
+import { createHorizonGeometry, createTileGeometry, LOD_SEGMENTS, lodForDistance, TILE_SIZE } from './tiles.ts';
 
 export interface Heightmap {
 	meta: TerrainHeightmapMeta;
@@ -32,6 +32,7 @@ export class Terrain {
 	private readonly geometries;
 	private readonly ground;
 	private readonly eye = new Vector3();
+	private readonly horizon: Mesh;
 
 	constructor(
 		shaped: ShapedTerrain,
@@ -47,6 +48,14 @@ export class Terrain {
 		}
 		this.geometries = LOD_SEGMENTS.map((segments) => createTileGeometry(segments, minHeight, maxHeight));
 		this.ground = createGroundMaterial(shaped, meta);
+		const horizon = new Mesh(
+			createHorizonGeometry(meta.center, meta.halfExtent, minHeight, maxHeight),
+			this.ground.material
+		);
+		horizon.name = 'horizon';
+		horizon.receiveShadow = true;
+		this.horizon = horizon;
+		this.object.add(horizon);
 		const tilesPerSide = Math.round((meta.halfExtent * 2) / TILE_SIZE);
 		const x0 = meta.center.x - meta.halfExtent;
 		const z0 = meta.center.z - meta.halfExtent;
@@ -80,6 +89,7 @@ export class Terrain {
 
 	dispose(): void {
 		for (const geometry of this.geometries) geometry.dispose();
+		this.horizon.geometry.dispose();
 		this.ground.material.dispose();
 		this.ground.texture.dispose();
 	}

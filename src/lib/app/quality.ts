@@ -8,13 +8,14 @@ export interface TierSettings {
 	blockTarget: number;
 	maxPixelRatio: number;
 	rockCount: number;
+	pyramidDetail: number;
 }
 
 export const TIER_SETTINGS: Record<Tier, TierSettings> = {
-	low: { blockTarget: 12_000, maxPixelRatio: 1, rockCount: 350 },
-	medium: { blockTarget: 30_000, maxPixelRatio: 1.25, rockCount: 900 },
-	high: { blockTarget: 70_000, maxPixelRatio: 1.5, rockCount: 1600 },
-	ultra: { blockTarget: 140_000, maxPixelRatio: 2, rockCount: 2400 }
+	low: { blockTarget: 12_000, maxPixelRatio: 1, rockCount: 350, pyramidDetail: 0.25 },
+	medium: { blockTarget: 30_000, maxPixelRatio: 1.25, rockCount: 900, pyramidDetail: 0.5 },
+	high: { blockTarget: 70_000, maxPixelRatio: 1.5, rockCount: 1600, pyramidDetail: 0.8 },
+	ultra: { blockTarget: 140_000, maxPixelRatio: 2, rockCount: 2400, pyramidDetail: 1 }
 };
 
 export function isTier(value: string | null): value is Tier {

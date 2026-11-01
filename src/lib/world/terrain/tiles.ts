@@ -73,3 +73,66 @@ export function createTileGeometry(segments: number, minHeight: number, maxHeigh
 	geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new Sphere());
 	return geometry;
 }
+
+export const HORIZON_BANDS = [
+	{ until: 2048, step: 128 },
+	{ until: 8192, step: 512 },
+	{ until: 20480, step: 2048 }
+] as const;
+
+function horizonCoordinates(center: number, halfExtent: number): number[] {
+	const outward: number[] = [];
+	let distance = 0;
+	for (const band of HORIZON_BANDS) {
+		while (distance < band.until) {
+			distance += band.step;
+			outward.push(distance);
+		}
+	}
+	const inner: number[] = [];
+	for (let d = -halfExtent; d <= halfExtent; d += HORIZON_BANDS[0].step) inner.push(d);
+	return [
+		...outward.toReversed().map((d) => center - halfExtent - d),
+		...inner.map((d) => center + d),
+		...outward.map((d) => center + halfExtent + d)
+	];
+}
+
+export function createHorizonGeometry(
+	center: { x: number; z: number },
+	halfExtent: number,
+	minHeight: number,
+	maxHeight: number
+): BufferGeometry {
+	const xs = horizonCoordinates(center.x, halfExtent);
+	const zs = horizonCoordinates(center.z, halfExtent);
+	const positions: number[] = [];
+	for (const z of zs) for (const x of xs) positions.push(x, 0, z);
+	const inside = (value: number, middle: number) => Math.abs(value - middle) < halfExtent - 1e-3;
+	const indices: number[] = [];
+	for (let row = 0; row < zs.length - 1; row++) {
+		for (let col = 0; col < xs.length - 1; col++) {
+			const midX = (xs[col] + xs[col + 1]) / 2;
+			const midZ = (zs[row] + zs[row + 1]) / 2;
+			if (inside(midX, center.x) && inside(midZ, center.z)) continue;
+			const a = row * xs.length + col;
+			const b = a + 1;
+			const c = a + xs.length;
+			const d = c + 1;
+			indices.push(a, c, b, b, c, d);
+		}
+	}
+	const count = positions.length / 3;
+	const geometry = new BufferGeometry();
+	geometry.setAttribute('position', new Float32BufferAttribute(positions, 3));
+	geometry.setAttribute('normal', new Float32BufferAttribute(new Array(count).fill([0, 1, 0]).flat(), 3));
+	geometry.setAttribute('skirt', new Float32BufferAttribute(new Array(count).fill(0), 1));
+	geometry.setIndex(new Uint32BufferAttribute(indices, 1));
+	const reach = halfExtent + HORIZON_BANDS[HORIZON_BANDS.length - 1].until;
+	geometry.boundingBox = new Box3(
+		new Vector3(center.x - reach, Math.min(minHeight, 0) - SKIRT_DEPTH, center.z - reach),
+		new Vector3(center.x + reach, maxHeight + 40, center.z + reach)
+	);
+	geometry.boundingSphere = geometry.boundingBox.getBoundingSphere(new Sphere());
+	return geometry;
+}

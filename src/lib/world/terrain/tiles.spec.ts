@@ -1,6 +1,13 @@
 import { Vector3 } from 'three/webgpu';
 import { describe, expect, it } from 'vitest';
-import { createTileGeometry, LOD_SEGMENTS, lodForDistance, TILE_SIZE } from './tiles.ts';
+import {
+	createHorizonGeometry,
+	createTileGeometry,
+	HORIZON_BANDS,
+	LOD_SEGMENTS,
+	lodForDistance,
+	TILE_SIZE
+} from './tiles.ts';
 
 describe('terrain tiles', () => {
 	it.each(LOD_SEGMENTS)('builds a %i-segment grid with a closed skirt', (segments) => {
@@ -45,5 +52,26 @@ describe('terrain tiles', () => {
 		expect(lodForDistance(3000)).toBe(2);
 		expect(lodForDistance(9000)).toBe(LOD_SEGMENTS.length - 1);
 		expect(lodForDistance(0, 1)).toBe(1);
+	});
+
+	it('surrounds the heightmap with a horizon ring that never overlaps it', () => {
+		const center = { x: 0, z: 1920 };
+		const half = 4096;
+		const geometry = createHorizonGeometry(center, half, 0, 100);
+		const position = geometry.getAttribute('position');
+		const index = geometry.index;
+		if (!index) throw new Error('missing index');
+		for (let i = 0; i < index.count; i += 3) {
+			let x = 0;
+			let z = 0;
+			for (let k = 0; k < 3; k++) {
+				x += position.getX(index.getX(i + k)) / 3;
+				z += position.getZ(index.getX(i + k)) / 3;
+			}
+			expect(Math.abs(x - center.x) < half && Math.abs(z - center.z) < half).toBe(false);
+		}
+		const reach = half + HORIZON_BANDS[HORIZON_BANDS.length - 1].until;
+		expect(geometry.boundingBox?.max.x).toBe(center.x + reach);
+		expect(index.count / 3).toBeLessThan(40_000);
 	});
 });

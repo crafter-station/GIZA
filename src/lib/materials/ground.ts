@@ -1,4 +1,5 @@
 import {
+	abs,
 	attribute,
 	cameraPosition,
 	cameraViewMatrix,
@@ -7,6 +8,7 @@ import {
 	dot,
 	Fn,
 	float,
+	max,
 	mix,
 	modelWorldMatrix,
 	mx_noise_float,
@@ -51,6 +53,9 @@ const WIND_DIRECTION = vec2(0.34, 0.94).normalize();
 const WIND_ACROSS = vec2(-0.94, 0.34);
 const RIPPLE_WAVELENGTH = 0.9;
 const NORMAL_STEP = 1.5;
+const HORIZON_BLEND = 2500;
+const VALLEY_EDGE = [600, 2600] as const;
+const REGIONAL_LEVEL = { desert: 68, valley: 20 } as const;
 
 export interface GroundMaterial {
 	material: MeshStandardNodeMaterial;
@@ -89,9 +94,17 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 			float(0)
 		);
 
+	const squareCenter = vec2(meta.center.x, meta.center.z);
 	const heightAt = (xz: Node<'vec2'>) => {
 		const ground = sampleGround(xz);
-		return ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
+		const measured = ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
+		const offset = abs(xz.sub(squareCenter)).sub(meta.halfExtent);
+		const beyond = smoothstep(0, HORIZON_BLEND, max(offset.x, offset.y));
+		const desert = oneMinus(smoothstep(VALLEY_EDGE[0], VALLEY_EDGE[1], xz.x));
+		const regional = mix(float(REGIONAL_LEVEL.valley), float(REGIONAL_LEVEL.desert), desert).add(
+			duneHeightNode(xz.mul(0.2)).mul(5).mul(desert)
+		);
+		return mix(measured, regional, beyond);
 	};
 
 	const material = new MeshStandardNodeMaterial({ roughness: 0.96, metalness: 0 });
