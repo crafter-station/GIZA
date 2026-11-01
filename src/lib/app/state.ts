@@ -5,6 +5,8 @@ export interface BlockInfo {
 	index: number;
 	course: number;
 	size: readonly [number, number, number];
+	kind: 'block' | 'core';
+	represents: number;
 }
 
 export interface EngineState {
@@ -14,9 +16,14 @@ export interface EngineState {
 	backend: Backend | null;
 	tier: Tier | null;
 	blockCount: number;
+	coreRatio: number;
 	blockMode: 'assembled' | 'deconstructed';
 	hovered: BlockInfo | null;
 	selected: BlockInfo | null;
+	inspecting: BlockInfo | null;
+	xray: number | null;
+	forceField: boolean;
+	collapsed: boolean;
 	error: string | null;
 }
 
@@ -27,9 +34,14 @@ export const INITIAL_ENGINE_STATE: EngineState = {
 	backend: null,
 	tier: null,
 	blockCount: 0,
+	coreRatio: 0,
 	blockMode: 'assembled',
 	hovered: null,
 	selected: null,
+	inspecting: null,
+	xray: null,
+	forceField: false,
+	collapsed: false,
 	error: null
 };
 

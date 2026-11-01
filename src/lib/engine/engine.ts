@@ -1,16 +1,27 @@
 import gsap from 'gsap';
 import Stats from 'stats-gl';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { type Mesh, MeshStandardNodeMaterial, PerspectiveCamera, Scene, WebGPURenderer } from 'three/webgpu';
+import {
+	CapsuleGeometry,
+	Mesh,
+	MeshStandardNodeMaterial,
+	PerspectiveCamera,
+	Raycaster,
+	Scene,
+	Vector2,
+	Vector3,
+	WebGPURenderer
+} from 'three/webgpu';
 import type { Flags } from '../app/flags.ts';
 import { type Backend, clampTier, initialTier, TIER_SETTINGS, type Tier, tierAfterBenchmark } from '../app/quality.ts';
 import { type EngineState, engineState } from '../app/state.ts';
+import { KHUFU_SURVIVING_COURSES_M } from '../data/khufu-courses.ts';
 import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
-import { KHUFU } from '../data/pyramids.ts';
+import { DERIVED, KHUFU } from '../data/pyramids.ts';
 import { createLimestoneMaterial } from '../materials/limestone.ts';
 import { createMasonryMaterial } from '../materials/masonry.ts';
-import { createBasaltMaterial, createGraniteMaterial } from '../materials/ruins.ts';
-import { BlockField, NO_BLOCK } from '../monuments/blocks/block-field.ts';
+import { createBasaltMaterial, createGraniteMaterial, createPitMaterial } from '../materials/ruins.ts';
+import { ANTICIPATION_SECONDS, BlockField, MAX_PHYSICS_BODIES, NO_BLOCK } from '../monuments/blocks/block-field.ts';
 import type { BlockLayout, BlockLayoutRequest } from '../monuments/blocks/layout.ts';
 import { createComplex, disposeComplex } from '../monuments/complex/complex.ts';
 import { buildComplexLayout, complexExclusions } from '../monuments/complex/layout.ts';
@@ -22,6 +33,7 @@ import {
 	geometryFromMeshData
 } from '../monuments/pyramid/pyramid-mesh.ts';
 import { loadSphinx } from '../monuments/sphinx/sphinx.ts';
+import { BODY_STRIDE } from '../physics/protocol.ts';
 import { CHAPTERS, resolveCameraKeys } from '../tour/chapters.ts';
 import { TourDirector } from '../tour/director.ts';
 import { Environment } from '../world/atmosphere/environment.ts';
@@ -43,6 +55,10 @@ export interface Engine {
 	enterFree(): void;
 	exitFree(): void;
 	setLighting(mode: LightingMode): void;
+	setXray(course: number | null): void;
+	setForceField(enabled: boolean): void;
+	inspect(index: number | null): void;
+	collapse(): Promise<void>;
 	dispose(): void;
 }
 
@@ -50,12 +66,14 @@ const MAX_DT = 0.05;
 const BENCHMARK_WARMUP_FRAMES = 30;
 const BENCHMARK_FRAMES = 90;
 const CLICK_TOLERANCE_PX = 5;
+const INSPECT_DISTANCE = 14;
+const WEBGL_PHYSICS_BODIES = 800;
 
 const KHUFU_SHAPE = {
 	baseSide: KHUFU.baseSide.value,
 	originalHeight: KHUFU.originalHeight.value,
-	currentHeight: KHUFU.currentHeight.value,
-	courses: KHUFU.courses.value
+	courses: KHUFU_SURVIVING_COURSES_M,
+	coreInset: 1.2
 };
 
 function patch(partial: Partial<EngineState>): void {
@@ -183,6 +201,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	scene.add(rocks);
 	const ruinMaterials = {
 		limestone: createLimestoneMaterial(),
+		pit: createPitMaterial(),
 		basalt: createBasaltMaterial(),
 		granite: createGraniteMaterial()
 	};
@@ -221,7 +240,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			shape: KHUFU_SHAPE,
 			targetCount: TIER_SETTINGS[tier].blockTarget,
 			rows: 2,
-			seed: 2560
+			seed: 2560,
+			coreShare: 0.15,
+			coursesPerCoreLayer: 10,
+			cubicMetresPerBlock: DERIVED.cubicMetresPerBlock.value
 		});
 		patch({ progress: progressFrom + 0.2, step: 'Uploading blocks to the GPU' });
 		await yieldToMain();
@@ -238,7 +260,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		scene.add(field.mesh);
 		picker.setTarget(field.pickMesh);
 		resize();
-		patch({ blockCount: layout.count, hovered: null, selected: null });
+		patch({ blockCount: layout.count, coreRatio: layout.blocksPerCoreCell, hovered: null, selected: null });
 		patch({ progress: progressFrom + 0.3, step: 'Compiling shaders' });
 		await renderer.compileAsync(scene, camera);
 		field.step(renderer, 0);
@@ -257,7 +279,35 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	let warmupFrames = 0;
 	let lastPublished = 0;
 
-	const blocksVisible = () => !!field && (benchmarking || !field.settled);
+	const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	const scale = new Mesh(new CapsuleGeometry(0.22, 1.31, 4, 12), new MeshStandardNodeMaterial({ color: 0x3b2f25 }));
+	scale.name = 'human-scale';
+	scale.visible = false;
+	scene.add(scale);
+	const forward = new Vector3();
+	const ray = new Raycaster();
+	const pointer = new Vector2();
+	let forceField = false;
+	const physicsWorker = new Worker(new URL('../physics/collapse.worker.ts', import.meta.url), { type: 'module' });
+	physicsWorker.onmessage = (event: MessageEvent<Float32Array>) => field?.applyPhysics(event.data);
+	const stopCollapse = () => {
+		physicsWorker.postMessage({ type: 'stop' });
+		field?.stopPhysics();
+		patch({ collapsed: false });
+	};
+	let inspecting: number | null = null;
+	const blocksVisible = () => !!field && (benchmarking || !field.settled || field.xrayActive);
+	const updateInspector = () => {
+		if (!field || inspecting === null) return;
+		camera.getWorldDirection(forward);
+		const target = camera.position.clone().addScaledVector(forward, INSPECT_DISTANCE).sub(field.mesh.position);
+		field.inspectTarget.value.copy(target);
+		const info = field.info(inspecting);
+		scale.position
+			.copy(target)
+			.add(field.mesh.position)
+			.add(new Vector3(info.size[0] / 2 + 1.2, -info.size[1] / 2 + 0.875, 0).applyQuaternion(camera.quaternion));
+	};
 
 	const frame = (time: number) => {
 		if (disposed || document.hidden || canvas.clientWidth === 0 || canvas.clientHeight === 0) {
@@ -274,14 +324,28 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		khufuVolume.visible = !showBlocks;
 		if (field) {
 			field.mesh.visible = showBlocks;
-			if (showBlocks) field.step(renderer, dt);
+			if (showBlocks) {
+				updateInspector();
+				field.step(renderer, dt);
+			}
 		}
 		environment.update(director.t);
 		pipeline.render(director.t);
 		stats?.update();
 		if (flags.perf && time - lastPublished > 1000) {
 			lastPublished = time;
-			publish('perf', JSON.stringify({ ...frames.summary(), backend, tier, blocks: field?.layout.count ?? 0 }));
+			const memory = renderer.info.memory as { geometries: number; textures: number };
+			publish(
+				'perf',
+				JSON.stringify({
+					...frames.summary(),
+					backend,
+					tier,
+					blocks: field?.layout.count ?? 0,
+					geometries: memory.geometries,
+					textures: memory.textures
+				})
+			);
 		}
 		if (benchmarking && ++warmupFrames === BENCHMARK_WARMUP_FRAMES) frames.reset();
 		if (benchmarking && warmupFrames > BENCHMARK_WARMUP_FRAMES && frames.count >= BENCHMARK_FRAMES)
@@ -306,7 +370,23 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		const rect = canvas.getBoundingClientRect();
 		return picker.pick(renderer, camera, event.clientX - rect.left, event.clientY - rect.top, rect.width, rect.height);
 	};
+	const aimField = (event: PointerEvent) => {
+		if (!field) return;
+		const rect = canvas.getBoundingClientRect();
+		pointer.set(
+			((event.clientX - rect.left) / rect.width) * 2 - 1,
+			-((event.clientY - rect.top) / rect.height) * 2 + 1
+		);
+		ray.setFromCamera(pointer, camera);
+		field.fieldOrigin.value.copy(ray.ray.origin).sub(field.mesh.position);
+		field.fieldDirection.value.copy(ray.ray.direction);
+		field.fieldStrength.value = 1;
+	};
 	const onPointerMove = async (event: PointerEvent) => {
+		if (forceField && event.buttons !== 0) {
+			aimField(event);
+			return;
+		}
 		if (event.buttons !== 0 || !field) return;
 		const index = await pickAt(event);
 		if (index === undefined || !field) return;
@@ -319,6 +399,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const onPointerUp = async (event: PointerEvent) => {
 		const start = pointerDown;
 		pointerDown = null;
+		if (field) field.fieldStrength.value = 0;
+		if (forceField) return;
 		if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_TOLERANCE_PX) return;
 		const index = await pickAt(event);
 		if (index === undefined || !field) return;
@@ -373,6 +455,29 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 
 	const setMode = (deconstructed: boolean) => {
 		if (!field) return;
+		if (reducedMotion) {
+			field.setXray(deconstructed ? Math.round(field.layout.courses / 2) : null);
+			patch({
+				blockMode: deconstructed ? 'deconstructed' : 'assembled',
+				xray: deconstructed ? Math.round(field.layout.courses / 2) : null
+			});
+			return;
+		}
+		if (!deconstructed) {
+			stopCollapse();
+			inspecting = null;
+			field.inspected.value = NO_BLOCK;
+			scale.visible = false;
+			patch({ inspecting: null });
+		}
+		if (deconstructed) {
+			gsap.fromTo(
+				field.anticipation,
+				{ value: 0 },
+				{ value: 1, duration: ANTICIPATION_SECONDS / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }
+			);
+			director.shake(ANTICIPATION_SECONDS, 0.35);
+		}
 		field.setDeconstructed(deconstructed);
 		if (!deconstructed) {
 			field.selected.value = NO_BLOCK;
@@ -385,6 +490,58 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	};
 
 	return {
+		setXray: (course) => {
+			field?.setXray(course);
+			patch({ xray: course });
+		},
+		setForceField: (enabled) => {
+			forceField = enabled;
+			controls.enabled = !enabled && director.isFree;
+			if (field && !enabled) field.fieldStrength.value = 0;
+			patch({ forceField: enabled });
+		},
+		inspect: (index) => {
+			if (!field) return;
+			inspecting = index;
+			field.inspected.value = index ?? NO_BLOCK;
+			scale.visible = index !== null;
+			patch({ inspecting: index === null ? null : field.info(index) });
+		},
+		collapse: async () => {
+			if (!field?.deconstructed || field.physicsActive) return;
+			const limit = Math.min(
+				MAX_PHYSICS_BODIES,
+				backend === 'webgl2' ? WEBGL_PHYSICS_BODIES : TIER_SETTINGS[tier].physicsBodies,
+				field.layout.shellCount
+			);
+			const { positions, rotations } = await field.readTransforms(renderer);
+			if (!field.deconstructed) return;
+			const indices = new Uint32Array(limit);
+			const bodies = new Float32Array(limit * BODY_STRIDE);
+			const { size } = field.layout;
+			for (let slot = 0; slot < limit; slot++) {
+				const block = field.layout.shellCount - limit + slot;
+				indices[slot] = block;
+				bodies.set(
+					[
+						positions[block * 4],
+						positions[block * 4 + 1],
+						positions[block * 4 + 2],
+						size[block * 4],
+						size[block * 4 + 1],
+						size[block * 4 + 2],
+						rotations[block * 4],
+						rotations[block * 4 + 1],
+						rotations[block * 4 + 2],
+						rotations[block * 4 + 3]
+					],
+					slot * BODY_STRIDE
+				);
+			}
+			field.startPhysics(indices);
+			physicsWorker.postMessage({ type: 'start', bodies, ground: 0 }, [bodies.buffer]);
+			patch({ collapsed: true });
+		},
 		deconstruct: () => setMode(true),
 		reassemble: () => setMode(false),
 		clearSelection: () => {
@@ -411,6 +568,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			canvas.removeEventListener('pointerdown', onPointerDown);
 			canvas.removeEventListener('pointerup', onPointerUp);
 			worker.terminate();
+			physicsWorker.terminate();
 			controls.dispose();
 			field?.dispose();
 			picker.dispose();
@@ -425,6 +583,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				});
 			}
 			masonry.dispose();
+			scale.geometry.dispose();
+			(scale.material as MeshStandardNodeMaterial).dispose();
 			stone.dispose();
 			void sphinxReady.then((sphinx) =>
 				sphinx?.traverse((object) => {

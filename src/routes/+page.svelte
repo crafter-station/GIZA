@@ -6,6 +6,7 @@ import { KHAFRE, KHUFU, MENKAURE } from '#lib/data/pyramids.ts';
 import type { Engine } from '#lib/engine/engine.ts';
 import { CHAPTERS } from '#lib/tour/chapters.ts';
 import BlockPanel from '#lib/ui/BlockPanel.svelte';
+import Inspector from '#lib/ui/Inspector.svelte';
 import LightingControls from '#lib/ui/LightingControls.svelte';
 import Loader from '#lib/ui/Loader.svelte';
 import TourChapters from '#lib/ui/TourChapters.svelte';
@@ -147,19 +148,33 @@ onMount(() => {
 	<header
 		class="pointer-events-none fixed top-4 left-4 flex items-center gap-3 rounded-sm border border-gold/60 bg-lapis-deep/85 py-2 pr-4 pl-3 text-papyrus shadow-lg backdrop-blur-sm"
 	>
-		<img src="/images/pyramid-sign.webp" alt="" aria-hidden="true" class="h-8 w-14 shrink-0 object-contain">
+		<img
+			src="/images/pyramid-sign.webp"
+			alt=""
+			aria-hidden="true"
+			class="h-8 w-14 shrink-0 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+		>
 		<div>
 			<h1 class="font-display text-2xl leading-none font-semibold tracking-wide">Giza</h1>
 			<p class="mt-0.5 text-[10px] tracking-[0.25em] text-gold-light/90 uppercase">The pyramids, block by block</p>
 		</div>
 	</header>
-	<TourChapters tour={$tourState} />
+	{#if !$engineState.inspecting}
+		<TourChapters tour={$tourState} />
+	{/if}
 	{#if showBlockPanel}
 		<BlockPanel
 			state={$engineState}
 			ondeconstruct={() => engine?.deconstruct()}
 			onreassemble={() => engine?.reassemble()}
+			onxray={(course) => engine?.setXray(course)}
+			onforcefield={(enabled) => engine?.setForceField(enabled)}
+			oninspect={(index) => engine?.inspect(index)}
+			oncollapse={() => void engine?.collapse()}
 		/>
+	{/if}
+	{#if $engineState.inspecting}
+		<Inspector block={$engineState.inspecting} onclose={() => engine?.inspect(null)} />
 	{/if}
 	<TourNav tour={$tourState} disabled={!ready} ongo={goTo} ontogglefree={toggleFree} />
 	{#if $engineState.status === 'loading'}

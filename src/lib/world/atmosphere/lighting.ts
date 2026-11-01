@@ -129,6 +129,23 @@ const COLOR_KEYS = new Set<keyof LightingLook>(['fogColor', 'sunColor']);
 const LOOK_KEYS = Object.keys(LIGHTING_LOOKS.dawn) as (keyof LightingLook)[];
 const DEG = Math.PI / 180;
 
+export const LIGHTING_PRESETS = Object.keys(LIGHTING_LOOKS) as LightingPreset[];
+
+export function nearestPreset(look: LightingLook): LightingPreset {
+	if (look.night > 0.5) return 'night';
+	let best: LightingPreset = 'noon';
+	let distance = Number.POSITIVE_INFINITY;
+	for (const preset of LIGHTING_PRESETS) {
+		if (preset === 'night') continue;
+		const gap = Math.abs(LIGHTING_LOOKS[preset].hour - look.hour);
+		if (gap < distance) {
+			distance = gap;
+			best = preset;
+		}
+	}
+	return best;
+}
+
 export function isLightingMode(value: string | null): value is LightingMode {
 	return LIGHTING_MODES.includes(value as LightingMode);
 }

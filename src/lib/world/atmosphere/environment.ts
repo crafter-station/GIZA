@@ -17,7 +17,17 @@ import {
 	type WebGPURenderer
 } from 'three/webgpu';
 import type { Tier } from '../../app/quality.ts';
-import { celestialState, LIGHTING_LOOKS, type LightingMode, sampleLighting } from './lighting.ts';
+import {
+	celestialState,
+	LIGHTING_LOOKS,
+	type LightingMode,
+	type LightingPreset,
+	nearestPreset,
+	sampleLighting
+} from './lighting.ts';
+
+const REBAKE_HOURS = 0.75;
+const REBAKE_INTERVAL_MS = 500;
 
 export class Environment {
 	readonly sun = new DirectionalLight(0xfff2df, 3.4);
@@ -32,7 +42,10 @@ export class Environment {
 	private readonly skies = [this.sky, this.environmentSky];
 	private readonly environmentScene = new Scene();
 	private readonly pmrem: PMREMGenerator;
-	private environmentMap: CubeRenderTarget | null = null;
+	private liveMap: CubeRenderTarget | null = null;
+	private bakedPreset: LightingPreset | null = null;
+	private bakedHour = Number.NEGATIVE_INFINITY;
+	private bakedAt = Number.NEGATIVE_INFINITY;
 	private readonly csm: CSMShadowNode;
 	private readonly moonDisc = new Mesh(new SphereGeometry(1, 16, 12), new MeshBasicNodeMaterial({ color: 0xd9e5f2 }));
 	private readonly night = uniform(0);
@@ -41,7 +54,6 @@ export class Environment {
 	private readonly fogColor = uniform(new Color());
 	private readonly density = uniform(0.0002);
 	private lastMinute = -1;
-	private lastEnvironmentHour = -100;
 	private lastFov = -1;
 	private lastAspect = -1;
 	private celestial = celestialState(LIGHTING_LOOKS.dawn.hour);
@@ -130,7 +142,6 @@ export class Environment {
 	setMode(mode: LightingMode): void {
 		this.mode = mode;
 		this.lastMinute = -1;
-		this.lastEnvironmentHour = -100;
 	}
 
 	setQuality(tier: Tier): void {
@@ -138,6 +149,14 @@ export class Environment {
 		this.sun.shadow.mapSize.setScalar(size);
 		for (const light of this.csm.lights) light.shadow?.mapSize.setScalar(size);
 		this.shafts.castShadow = tier === 'high' || tier === 'ultra';
+	}
+
+	private bakeEnvironment(): void {
+		this.liveMap = this.pmrem.fromScene(this.environmentScene, 0.04, 1, 20000, {
+			size: 64,
+			renderTarget: this.liveMap
+		});
+		this.scene.environment = this.liveMap.texture;
 	}
 
 	update(t: number, forceEnvironment = false): boolean {
@@ -187,12 +206,14 @@ export class Environment {
 			this.lastFov = this.camera.fov;
 			this.lastAspect = this.camera.aspect;
 		}
-		if (forceEnvironment || discontinuity || Math.abs(look.hour - this.lastEnvironmentHour) > 0.3) {
-			const next = this.pmrem.fromScene(this.environmentScene, 0.04, 1, 20000, { size: 64 });
-			this.scene.environment = next.texture;
-			this.environmentMap?.dispose();
-			this.environmentMap = next;
-			this.lastEnvironmentHour = look.hour;
+		const preset = nearestPreset(look);
+		const now = performance.now();
+		const stale = preset !== this.bakedPreset || Math.abs(look.hour - this.bakedHour) > REBAKE_HOURS;
+		if (forceEnvironment || !this.liveMap || (stale && now - this.bakedAt > REBAKE_INTERVAL_MS)) {
+			this.bakeEnvironment();
+			this.bakedPreset = preset;
+			this.bakedHour = look.hour;
+			this.bakedAt = now;
 		}
 		return discontinuity;
 	}
@@ -201,7 +222,8 @@ export class Environment {
 		this.disposed = true;
 		this.scene.environment = null;
 		this.scene.fogNode = null;
-		this.environmentMap?.dispose();
+		this.liveMap?.dispose();
+		this.liveMap = null;
 		this.pmrem.dispose();
 		this.csm.dispose();
 		for (const light of this.csm.lights) light.shadow?.dispose();

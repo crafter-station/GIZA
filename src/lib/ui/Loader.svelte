@@ -12,7 +12,12 @@ const percent = $derived(Math.round(progress * 100));
 
 <div class="papyrus pointer-events-none fixed inset-0 grid place-items-center">
 	<div class="w-80 text-center">
-		<img src="/images/pyramid-sign.webp" alt="" aria-hidden="true" class="mx-auto block h-24 w-44 object-contain">
+		<img
+			src="/images/pyramid-sign.webp"
+			alt=""
+			aria-hidden="true"
+			class="mx-auto block h-24 w-44 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+		>
 		<p class="mt-4 font-display text-4xl font-semibold tracking-wide">Giza</p>
 		<p class="mt-1 text-[10px] tracking-[0.3em] text-ink/60 uppercase">The pyramids, block by block</p>
 		<Progress.Root

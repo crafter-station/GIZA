@@ -17,6 +17,8 @@ export class TourDirector {
 	private returning: gsap.core.Tween | null = null;
 	private published = { t: -1, chapter: -1, mode: '' };
 	t = 0;
+	private shakeStrength = 0;
+	private shaking: gsap.core.Tween | null = null;
 
 	constructor(
 		private readonly camera: PerspectiveCamera,
@@ -48,6 +50,7 @@ export class TourDirector {
 		if (this.mode === 'free') this.controls.update(dt);
 		else if (this.fixedPose) this.applyFixedPose(this.fixedPose);
 		else if (!this.returning) this.applyPose(this.t);
+		this.applyShake(time);
 		this.publish();
 	}
 
@@ -97,6 +100,7 @@ export class TourDirector {
 	}
 
 	dispose(): void {
+		this.shaking?.kill();
 		this.returning?.kill();
 		this.lenis.destroy();
 	}
@@ -109,6 +113,31 @@ export class TourDirector {
 			this.camera.fov = fov;
 			this.camera.updateProjectionMatrix();
 		}
+	}
+
+	shake(duration: number, amplitude: number): void {
+		const state = { strength: amplitude };
+		this.shaking?.kill();
+		this.shaking = gsap.to(state, {
+			strength: 0,
+			duration,
+			ease: 'power2.out',
+			onUpdate: () => {
+				this.shakeStrength = state.strength;
+			},
+			onComplete: () => {
+				this.shakeStrength = 0;
+				this.shaking = null;
+			}
+		});
+	}
+
+	private applyShake(time: number): void {
+		if (this.shakeStrength <= 0) return;
+		const s = this.shakeStrength;
+		this.camera.position.x += Math.sin(time * 0.071) * s;
+		this.camera.position.y += Math.sin(time * 0.053 + 1.3) * s * 0.6;
+		this.camera.position.z += Math.sin(time * 0.067 + 2.1) * s;
 	}
 
 	private applyPose(t: number): void {
