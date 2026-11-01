@@ -1,0 +1,45 @@
+{
+	"description": "Photographic color references, not calibrated radiance or historical evidence. Regions are normalized [x, y, width, height]. Originals are unchanged.",
+	"images": [
+		{
+			"id": "dawn",
+			"file": "dawn.jpg",
+			"title": "A New Day In History (210059113)",
+			"author": "Simon Matzinger",
+			"source": "https://commons.wikimedia.org/wiki/File:A_New_Day_In_History_(210059113).jpeg",
+			"license": "https://creativecommons.org/licenses/by/3.0/",
+			"notes": "Edited sunrise photograph through a window. The warm reflection is not a direct measurement of sky radiance.",
+			"regions": { "sky": [0.04, 0.04, 0.2, 0.12], "stone": [0.07, 0.37, 0.25, 0.13], "warmReflection": [0.66, 0.51, 0.15, 0.12] }
+		},
+		{
+			"id": "daylight",
+			"file": "daylight.jpg",
+			"title": "Giza Pyramids Panorama",
+			"author": "Benjamin Inbar",
+			"source": "https://commons.wikimedia.org/wiki/File:Giza_Pyramids_Panorama.jpg",
+			"license": "https://creativecommons.org/licenses/by-sa/4.0/",
+			"notes": "Morning daylight (camera timestamp 18 July 2023, 08:41), used for dusty blue sky and brown ground, not proof of the noon solar position.",
+			"regions": { "sky": [0.1, 0.1, 0.8, 0.25], "ground": [0.1, 0.8, 0.65, 0.1] }
+		},
+		{
+			"id": "sunset",
+			"file": "sunset.jpg",
+			"title": "Giza-sunset",
+			"author": "Faris knight (Faris El-Gwely)",
+			"source": "https://commons.wikimedia.org/wiki/File:Giza-sunset.JPG",
+			"license": "https://creativecommons.org/licenses/by-sa/4.0/",
+			"notes": "Cloudy twilight over Giza viewed from Cairo Tower. Used for the cool upper sky / warm horizon relationship only; urban lighting and cloud pattern are excluded.",
+			"regions": { "upperSky": [0.1, 0.03, 0.2, 0.1], "horizon": [0.4, 0.4, 0.25, 0.04] }
+		},
+		{
+			"id": "night",
+			"file": "night.jpg",
+			"title": "Giza pyramids at night",
+			"author": "Amrkhaled 2003",
+			"source": "https://commons.wikimedia.org/wiki/File:Giza_pyramids_at_night.jpg",
+			"license": "https://creativecommons.org/licenses/by-sa/4.0/",
+			"notes": "Modern floodlit monuments. Only the dark upper-sky palette is sampled. Artificial floodlights are not reproduced in the moonlit scene.",
+			"regions": { "sky": [0.1, 0.03, 0.8, 0.15] }
+		}
+	]
+}

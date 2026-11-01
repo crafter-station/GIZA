@@ -1,0 +1,81 @@
+@import "tailwindcss";
+
+@theme {
+	--font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+	--font-display: "Cormorant Garamond Variable", Georgia, serif;
+	--font-glyph: "Noto Sans Egyptian Hieroglyphs", "Segoe UI Historic", serif;
+	--color-papyrus: #efe3c6;
+	--color-papyrus-deep: #dfc99d;
+	--color-ink: #2a1f14;
+	--color-lapis: #1f3b73;
+	--color-lapis-deep: #13254a;
+	--color-faience: #2e8b87;
+	--color-gold: #c9a24b;
+	--color-gold-light: #e8cd86;
+	--color-ochre: #a4452c;
+}
+
+@utility papyrus {
+	background-color: var(--color-papyrus);
+	background-image:
+		repeating-linear-gradient(
+			0deg,
+			rgb(132 98 46 / 0.05) 0 1px,
+			transparent 1px 4px,
+			rgb(132 98 46 / 0.025) 4px 5px,
+			transparent 5px 11px
+		),
+		repeating-linear-gradient(
+			90deg,
+			rgb(132 98 46 / 0.018) 0 1px,
+			transparent 1px 23px,
+			rgb(132 98 46 / 0.012) 23px 25px,
+			transparent 25px 41px
+		),
+		radial-gradient(140% 100% at 20% 10%, rgb(255 251 238 / 0.75), transparent 55%),
+		radial-gradient(90% 70% at 90% 105%, rgb(150 108 48 / 0.18), transparent 70%);
+	color: var(--color-ink);
+}
+
+@utility frieze {
+	background:
+		conic-gradient(from 135deg at 50% 0, var(--color-gold) 0 90deg, transparent 0) 0 100% / 14px 7px repeat-x,
+		var(--color-lapis);
+}
+
+@utility beads {
+	background:
+		radial-gradient(circle, var(--color-gold-light) 1.4px, transparent 1.9px) 0 50% / 9px 9px repeat-x,
+		var(--color-lapis-deep);
+}
+
+@utility register {
+	border-top: 3px double color-mix(in oklab, var(--color-gold) 70%, transparent);
+}
+
+@utility glyph {
+	font-family: var(--font-glyph);
+	font-weight: 400;
+	line-height: 1;
+}
+
+body {
+	background: var(--color-papyrus);
+	font-family: var(--font-sans);
+}
+
+html.lenis {
+	height: auto;
+}
+
+html.lenis body {
+	height: auto;
+}
+
+.lenis:not(.lenis-autoToggle).lenis-stopped {
+	overflow: clip;
+}
+
+.lenis [data-lenis-prevent] {
+	overscroll-behavior: contain;
+}

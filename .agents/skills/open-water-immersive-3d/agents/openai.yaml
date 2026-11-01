@@ -1,0 +1,4 @@
+interface:
+  display_name: "Open Water · 3D Experiences"
+  short_description: "Rendering, atmosphere, and responsiveness for pyramids"
+  default_prompt: "Use $open-water-immersive-3d to design an educational pyramid scene with atmospheric lighting, a narrative camera, and adaptive quality."

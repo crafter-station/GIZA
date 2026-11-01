@@ -1,0 +1,141 @@
+{
+  "method": "Browser sRGB decode; per-channel medians; linear sRGB luminance quantiles; no image files modified.",
+  "measurements": [
+    {
+      "id": "dawn",
+      "sha256": "cf1fd81e29f796a9914fb3fd798bffaf20f6fadcf11616055e70ddd03c8dedc8",
+      "width": 1338,
+      "height": 2048,
+      "regions": {
+        "sky": {
+          "medianSrgb": [
+            185,
+            233,
+            247
+          ],
+          "hex": "#b9e9f7",
+          "luminance": {
+            "p10": 0.74434,
+            "p50": 0.75308,
+            "p90": 0.8103
+          }
+        },
+        "stone": {
+          "medianSrgb": [
+            156,
+            136,
+            119
+          ],
+          "hex": "#9c8877",
+          "luminance": {
+            "p10": 0.19942,
+            "p50": 0.25957,
+            "p90": 0.32948
+          }
+        },
+        "warmReflection": {
+          "medianSrgb": [
+            254,
+            250,
+            175
+          ],
+          "hex": "#fefaaf",
+          "luminance": {
+            "p10": 0.90771,
+            "p50": 0.92577,
+            "p90": 0.94091
+          }
+        }
+      }
+    },
+    {
+      "id": "daylight",
+      "sha256": "c984ced9501e3c502a2b5c476d1c7ed49393a5f9fa8b45895bfe0a17f79c393f",
+      "width": 3120,
+      "height": 1760,
+      "regions": {
+        "sky": {
+          "medianSrgb": [
+            134,
+            157,
+            197
+          ],
+          "hex": "#869dc5",
+          "luminance": {
+            "p10": 0.25295,
+            "p50": 0.33157,
+            "p90": 0.37117
+          }
+        },
+        "ground": {
+          "medianSrgb": [
+            107,
+            80,
+            56
+          ],
+          "hex": "#6b5038",
+          "luminance": {
+            "p10": 0.06065,
+            "p50": 0.09146,
+            "p90": 0.11532
+          }
+        }
+      }
+    },
+    {
+      "id": "sunset",
+      "sha256": "9ec84cad57b331b75e8c63935ea6c4d0f079a98c373d295992a5ae413a2af713",
+      "width": 4928,
+      "height": 3264,
+      "regions": {
+        "upperSky": {
+          "medianSrgb": [
+            88,
+            109,
+            192
+          ],
+          "hex": "#586dc0",
+          "luminance": {
+            "p10": 0.07902,
+            "p50": 0.16667,
+            "p90": 0.3774
+          }
+        },
+        "horizon": {
+          "medianSrgb": [
+            111,
+            83,
+            132
+          ],
+          "hex": "#6f5384",
+          "luminance": {
+            "p10": 0.09006,
+            "p50": 0.11402,
+            "p90": 0.22733
+          }
+        }
+      }
+    },
+    {
+      "id": "night",
+      "sha256": "fa5db8b684ebd8d75f8ffd223e734b9131c4ad8a0a79a85f7dfe373d0240134d",
+      "width": 648,
+      "height": 316,
+      "regions": {
+        "sky": {
+          "medianSrgb": [
+            53,
+            58,
+            82
+          ],
+          "hex": "#353a52",
+          "luminance": {
+            "p10": 0.04229,
+            "p50": 0.04396,
+            "p90": 0.04656
+          }
+        }
+      }
+    }
+  ]
+}

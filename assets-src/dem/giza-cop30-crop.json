@@ -1,0 +1,10 @@
+{
+	"width": 313,
+	"height": 274,
+	"west": 31.090833333333332,
+	"north": 29.99972222222222,
+	"degX": 0.0002777777777777778,
+	"degY": 0.0002777777777777778,
+	"layout": "float32 little-endian, row-major, row 0 = north; west/north are the first sample center",
+	"attribution": "Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved."
+}

@@ -1,0 +1,4 @@
+interface:
+  display_name: "Seijaku · Cinematic 3D Journey"
+  short_description: "Scroll-to-camera, HDR pipeline, shaders, and responsiveness for pyramids"
+  default_prompt: "Use $seijaku-cinematic-3d to build a scroll-guided 3D journey through the Great Pyramid, with educational chapters, inspection mode, and stable performance."

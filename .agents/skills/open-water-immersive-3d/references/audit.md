@@ -1,0 +1,34 @@
+# Audit: Corrections the Skill Should Inherit
+
+Scope: local copy inspected on October 31, 2026. The original engine was not modified. The following corrections are instructions for new implementations or reuse; they do not mean the issues have already been fixed in Open Water. Dynamic evidence and its scope are described in [sources](sources.md).
+
+## Concrete Defects and Limitations
+
+| Code evidence | Consequence | Reusable correction | Check |
+| --- | --- | --- | --- |
+| `main.js:24–30`: indexes `QUALITY` directly with `q`; multiple `Number(params.get(...))` calls are unvalidated | Unknown quality leaves `QUALITY` undefined; NaN/negative values can corrupt resources or physics | Use an enum with a fallback for quality/preset; validate numbers with `Number.isFinite`, ranges, and units. Use presence/nullish checks where zero is valid | `q=unknown`, `wind=abc`, `fov=0`, and `scale=-1` must recover a safe value without sending NaN to the GPU |
+| `weather.js`, constructor and `update`: copies `PRESETS[preset]` without checking | Unknown preset creates an empty state; update produces NaN for its keys | Validate presets at construction and when changing them; use a schema shared by UI/URL setters | Invalid preset retains a complete, finite state |
+| `fx/post.js`, `resize` can create zero levels; `run` accesses `levels[0].tex` | A small framebuffer, e.g. 8×8, throws an exception | Suspend for a 0×0 container; for small sizes, skip bloom or bind a valid neutral texture | Resize to 8×8 and restore to a normal size |
+| `gl.js:280`: module-global `emptyVao` | A second context/reconstruction may reuse a VAO owned by another or invalidated context | Make ownership per renderer/context; invalidate the cache after restoration. A per-context WeakMap also needs a reset when that context is restored | Test two simultaneous canvases and context loss/restoration |
+| `Program`, `makeMesh`, `Rain`, `Spray`, and `Clouds` lack comprehensive cleanup; generation temporaries are not always released | No reliable lifecycle for mounting/unmounting or changing chapters | Retain buffer handles; delete shaders after linking; implement idempotent `dispose()` for programs, VAOs, FBOs, textures, syncs, and queries. Release temporary generators. Clean up RAFs/listeners/timers/audio | Repeat mount/unmount and observe resource stability. Static inspection does not quantify a leak during a stable session |
+| `main.js` has no live context recovery; the exporter detects loss and restarts the browser | Interactive page may become unusable after a GPU reset | Handle `webglcontextlost`, stop work, and rebuild from CPU state after restoration; use an HTML fallback if recovery fails | Restore a functional scene, not merely hide the error |
+| `ocean/probe.js:53`: every result other than TIMEOUT_EXPIRED is treated as ready | WAIT_FAILED leads to reading unconfirmed data | Read only ALREADY_SIGNALED or CONDITION_SATISFIED; keep the last value on TIMEOUT; abandon the fence and recover on WAIT_FAILED | Verify all four branches; do not introduce busy waiting |
+| `profiler.js:32–34` averages calls by label despite the comment about summing per frame | A label repeated four times is averaged, not summed. `profile2` also fragments the parent section | Associate queries with a frame/pass, sum within the frame, then compute percentiles; separate hierarchical view from total | Two occurrences of 2 and 3 ms must yield 5 ms/frame, not 2.5 ms |
+| `tools/perf.mjs`: `?render`, `gl.finish()`, cumulative GPU average including warmup | Metric differs from the live loop; warmup is inconsistent with wall-time median | Separate export benchmarking from interactive measurement; reset counters after warmup and drain queries before reporting | Report mode and valid samples; do not publish its `fps` as interactive FPS |
+| `main.js:464`: audio reads `S.rain`, while rendering uses `L.rain` from the local front | When a front arrives, rain may be visible without matching ambience | Publish one shared local state for rendering and audio, with a fallback during initialization | Test fronts with zero base rain and high local rain |
+| `filmFrame` retains RNG, advection, foam, and history; offline recovery only warms up for a few seconds | Resuming or seeking does not guarantee the same frame as continuous playback | Use per-event/time seeds, complete checkpoints, or reproducible replay; define visual tolerance | Compare continuous playback with seek/resume for camera, particles, and accumulation |
+| `render/render.mjs` waits for ffmpeg `close` without rejecting non-zero exit codes; remux uses `process.exit` | May report success without a valid video and skip normal browser shutdown | Handle `error`, exit code, stdin, and close in `finally`; cancel owned processes on failure | Missing encoder, unwritable output, and mid-run failure must not report success |
+
+## Product Improvements, Not Universal Failure Claims
+
+- The project does have HTML controls, buttons, and some ARIA labels. It lacks an alternative educational experience, reduced-motion mode, and complete keyboard camera navigation. Add pause, visible focus, touch controls, and content outside the canvas; handle `pointercancel` and `lostpointercapture`. Do not describe it as having no accessibility at all.
+- Cloud reprojection is a useful approximation for open water. Near architecture, history rejection by depth/disocclusion and response to lighting changes are needed. It has not been proven to cause artifacts in every scene: evaluate it with the target movement and geometry.
+- Atmospheric LUTs and statistics are recalculated frequently during transitions. This is an opportunity to profile, not a claim that they are the bottleneck on every device.
+- Flags in `tools/browser.mjs` force ANGLE/D3D11 and disable watchdog/locks, even while including Chrome paths from other systems. Use platform-specific configuration, timeouts, and normal flags for compatibility tests. Keep exceptional offline-capture settings isolated.
+- FPS-based adaptation stops changing scale when `document.hidden`, but does not itself fully pause sound or the clock. Handle visibility, reset the timestamp when returning, and do not interpret a pause as a slow GPU.
+
+## Do Not Perpetuate Physical Assumptions
+
+The code combines published models, approximations, and artistic tuning. The moon, for example, is placed using a heuristic `moonDir` formula, not astronomical ephemerides. The night render rescales light for numerical precision and creates part of the effect in exposure. The skill may teach these techniques, but must not present them as a historical simulation of the Egyptian sky.
+
+Water, sea aerosol, storms, and white-balance coefficients are not universal. If an interaction teaches solar orientation or monument dimensions, verify domain-specific sources and distinguish documented facts, reconstruction, and artistic license.

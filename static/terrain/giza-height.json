@@ -1,0 +1,79 @@
+{
+	"version": 1,
+	"file": "giza-height.bin",
+	"size": 257,
+	"center": {
+		"x": 0,
+		"z": 1920
+	},
+	"halfExtent": 4096,
+	"spacing": 32,
+	"minHeight": -1,
+	"maxHeight": 112,
+	"verticalDatum": "EGM2008",
+	"origin": {
+		"lat": 29.979166666666664,
+		"lon": 31.134166666666665
+	},
+	"surfaceModel": true,
+	"source": {
+		"product": "Copernicus DEM GLO-30 (DGED 2021_1), digital surface model",
+		"tile": "Copernicus_DSM_10_N29_00_E031_00",
+		"attribution": "Produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+		"license": "Copernicus DEM licence (free use with attribution): https://spacedata.copernicus.eu/web/cscda/data-offer/terms-and-conditions"
+	},
+	"verification": {
+		"khufu": {
+			"expected": {
+				"x": 0,
+				"z": 0
+			},
+			"peak": {
+				"x": 53.6,
+				"z": 0,
+				"height": 94.2
+			},
+			"offset": 53.6,
+			"prominence": 39.1
+		},
+		"khafre": {
+			"expected": {
+				"x": -321.7,
+				"z": 338.7
+			},
+			"peak": {
+				"x": -321.7,
+				"z": 369.5,
+				"height": 101.8
+			},
+			"offset": 30.8,
+			"prominence": 32.2
+		},
+		"menkaure": {
+			"expected": {
+				"x": -563,
+				"z": 739
+			},
+			"peak": {
+				"x": -563,
+				"z": 739,
+				"height": 88.7
+			},
+			"offset": 0,
+			"prominence": 19.5
+		},
+		"sphinx": {
+			"expected": {
+				"x": 321.7,
+				"z": 431.1
+			},
+			"peak": {
+				"x": 268.1,
+				"z": 338.7,
+				"height": 39.5
+			},
+			"offset": 106.8,
+			"prominence": 1.1
+		}
+	}
+}
