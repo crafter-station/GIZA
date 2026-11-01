@@ -6,7 +6,7 @@ Este documento recoge **decisiones**, no opciones. Si una decisión se cambia, s
 
 **Idioma y estilo**: este plan es el único archivo en español. Todo lo demás (código, identificadores, documentación, commits y textos de la interfaz) se escribe en **inglés**, y el código **no lleva comentarios** (ni JSDoc). Reglas recogidas en `AGENTS.md`.
 
-**Estado**: ✅ Fases 0 a 5 concluidas (2026-11-01) · ⏭️ siguiente: Fase 6 (deconstrucción completa). El detalle está en §10.
+**Estado**: ✅ Fases 0 a 5 concluidas · 🔄 Fase 6 en curso (deconstrucción con rayos X, campo de fuerza, Inspector y derrumbe con física; faltan Construir, la vista por material y los interiores) · 2026-11-01. El detalle está en §10.
 
 ---
 
@@ -480,27 +480,51 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 
 ### Fase 5 - Pirámides ✅ (concluida el 2026-11-01)
 - ✅ **Generador procedural** (`src/lib/monuments/pyramid/generator.ts`, en un Web Worker): núcleo escalonado hilada a hilada, segmentado en bloques de ≈ 3 m con retranqueos aleatorios, bloques que faltan (más en esquinas y abajo), caras con huella y contrahuella, revestimientos lisos parciales sobre la pendiente original y huecos tallados. Atributos por vértice (`stone`, `along`, `courseV`, `course`) para que el material dibuje juntas reales. LOD de 2 niveles con `THREE.LOD` (detalle cerca; volumen simple a > 1,8 km).
-- ✅ **Keops**: 203 hiladas con un **perfil reconstruido** que cumple exactamente los datos que Petrie da en el texto (fuente primaria leída en el PDF de *The Pyramids and Temples of Gizeh*): hilada 1 = 58,6″, 1 + 2 = 107,7″, 1–6 = 278,1″, la hilada 19 de 37,94″ más gruesa que las 11 anteriores y las 14 siguientes, las 20 y 21 las más finas hasta la 77, un pico en la 35, 23 picos con adelgazamiento posterior y cima a 5 408″. Concavidad de las caras (≈ 0,9 m en el centro), restos de revestimiento en la primera hilada, **entrada original** (cara norte, hilada 19, ≈ 17 m, 7,9 m al este del eje) y **túnel de al-Mamún** (hiladas 6–7, ≈ 7 m).
-- ✅ **Kefrén**: revestimiento de Tura en el tercio superior con borde irregular y restos de granito en la base. **Micerinos**: 7 hiladas inferiores con revestimiento parcial de granito de Asuán y la **brecha de 1196** en la cara norte.
-- ✅ **Seis pirámides de las reinas** (G1-a/b/c y G3-a/b/c) con posición y medidas de las fuentes (Verner, Lehner y Hawass vía Wikipedia); G3-b y G3-c escalonadas de 4 plataformas.
-- ✅ **Compl-jos**: templos funerarios en ruinas al este de cada pirámide (el de Keops con su pavimento de basalto), templo del valle de granito junto a la Esfinge, tres calzadas que siguen el terreno y los cementerios de mastabas oeste y este; todo con piezas instanciadas (6 draw calls).
+- ✅ **Keops con hiladas medidas**: se importaron los **203 registros** de la Lámina VIII de Petrie (transcripción corregida de R. Birdsall, 2003) en `src/lib/data/khufu-courses.ts`, con su número original, los niveles y espesores NE y SW, la variación entre esquinas y las anotaciones (hiladas 2, 3, 70, 110, 132, 202 y 203). Cada espesor coincide con la diferencia de niveles. Según la fuente, **las hiladas 202 y 203 ya no existen** (Petrie solo midió restos en la esquina NE), así que la Keops actual se construye con las **201 hiladas existentes**, sin escalar: 5 407,9″ = 137,36 m. El perfil reconstruido anterior se eliminó. Se mantienen la concavidad de las caras, los restos de revestimiento de la primera hilada, la **entrada original** (hilada 19) y el **túnel de al-Mamún** (hiladas 6–7).
+- ✅ **Kefrén y Micerinos sin hiladas inventadas**: el generador tiene un **modo liso** (caras sobre la pendiente, sin juntas de hilada) para las pirámides cuyas hiladas no tienen transcripción verificada. Kefrén lleva el revestimiento de Tura en su tercio superior. Micerinos lleva el granito de Asuán en la base hasta una altura **estimada** de 8,75 m (7 de 16 hiladas que superaban los 20 m; rotulado como derivado) y la brecha de 1196 tallada con paredes.
+- ✅ **Posiciones del GIS** (`tools/build-gis.ts` → `src/lib/data/giza-gis.ts`, servicio *GIZA Vectors for Web* reproyectado a WGS84 y a nuestro marco): Keops, Kefrén, Micerinos y las seis reinas usan los centros de sus huellas medidas. Respecto a las coordenadas redondeadas, Kefrén se movió 14 m al oeste y 19 m al sur, y G1-a y G1-b, 14 m al este.
+- ✅ **Reinas sin porcentajes inventados**:
+  - G1-a/b/c se muestran con su altura original documentada (30 / 30 / 29,6 m) como **reconstrucción**.
+  - G3-a, con su altura actual documentada (25,4 m).
+  - G3-b y G3-c, como pirámides escalonadas de 4 plataformas (documentadas), con una altura **estimada** a partir de la pendiente de G3-a (52° 15′).
+
+  Las alturas reconstruidas o estimadas quedan marcadas en `RECONSTRUCTED_HEIGHTS`.
+- ✅ **Mastabas del Cementerio Oriental desde el GIS**: las 84 huellas medidas, con su número de Reisner cuando existe (p. ej. «7110 7120», época de Keops), cada una como rectángulo orientado. Su altura es una **hipótesis visual** (≈ 5 m) porque la capa no registra alturas.
+- ✅ **Templos, calzadas y Cementerio Occidental desde el plano de Lepsius** (*Situationsplan des Pyramidenfeldes von Giseh*, Digital Giza, foto 80), **georreferenciado** con los centros GIS de Keops y Kefrén (escala 1,42 m/px, rotación −90°; residuo frente a Micerinos y las reinas de 9–15 m; precisión ≈ ± 25 m). Se digitalizaron:
+  - el templo funerario y los dos fosos de barcas de Keops, y su calzada bajando por el escarpe;
+  - el templo funerario de Kefrén y su calzada;
+  - el templo de Micerinos y el tramo de su calzada visible en el plano;
+  - la extensión y el módulo de las mastabas del Cementerio Occidental.
+
+  Todo está en `src/lib/monuments/complex/plan-features.ts` con su nota de precisión. El templo funerario de Keops se centró entre su cara este y G1-a, dentro de esa tolerancia. El templo del valle de Kefrén **no aparece** en el plano porque Mariette lo excavó en 1853, así que se sitúa junto a la Esfinge según las fuentes escritas. Las alturas de templos y calzadas son hipótesis visuales.
+- ✅ Cada estructura del complejo lleva su origen (`gis`, `plan` o `written`), para que la interfaz pueda distinguir lo documentado de lo reconstruido.
 - ✅ **Material de mampostería TSL** (`materials/masonry.ts`): juntas verticales y de lecho, tono por bloque, pátina, polvo en las huellas, caliza de Tura con manchas verticales y granito con moteado y meteorización; doble cara para que los huecos de bloque muestren su techo en sombra (antes se veía el cielo a través).
 - ✅ **Detalle según el nivel de calidad**: la distancia a la que cada pirámide pasa a su volumen simple se escala por nivel (low ×0,25, medium ×0,5, high ×0,8, ultra ×1) y se actualiza si el benchmark baja de nivel. Lo destapó el E2E en render por software, pero beneficia a cualquier equipo modesto.
 - ✅ E2E: deconstrucción (4,2 min) e iluminación (5–6 min) pasan en Chromium sin GPU; el servidor de prueba tiene 5 min de margen porque el build ya tarda ≈ 1 min 48 s.
 - ✅ Medidas: 313 000 triángulos entre las 9 pirámides (Keops 161 000), generados en 373 ms dentro del worker; RTX 3050 en ultra: mediana 16,7 ms (60 fps) en los capítulos de Keops y de la Esfinge.
 - ✅ Tests (84 en total): perfil de hiladas frente a los anclajes de Petrie, presupuesto y envolvente de cada pirámide, revestimientos de Kefrén y Micerinos, entrada y túnel de Keops, complejos sin invadir pirámides y recorrido de cámara libre de reinas, templos y mastabas.
 - ✅ Revisión visual a 5 m (bloques, juntas y huecos en la base de Keops), a 100–300 m (cara norte de Keops, Kefrén al atardecer, Micerinos) y a ≈ 2 km (vista aérea de toda la meseta).
-- ⚠️ Datos que faltan para pasar de esquemático a medido: la tabla completa de hiladas de Petrie (Lám. VIII, un gráfico; hay que digitalizarla para sustituir el perfil reconstruido), los perfiles de hiladas de Kefrén, Micerinos y las reinas, la altura actual de las reinas (estimada como fracción de la original), y los planos de templos y mastabas (disposición esquemática). Todo está aislado en `designs.ts` y `complex/layout.ts`, así que basta con cambiar datos.
 - **Hecho cuando** ✅: a 5 m, a 100 m y a 2 km cada pirámide se reconoce (capturas revisadas).
 -
-### Fase 6 — Deconstrucción (la interacción estrella) ⬜
-- Generación de bloques en worker y build desde la misma tabla de hiladas; intercambio invisible malla ↔ bloques.
-- Coreografía completa (§3.2) con GSAP; acciones de §3.3: explorar, campo de fuerza, extraer al Inspector, rayos X por hiladas, vista por material, construir con línea de tiempo y rampas, derrumbe con Rapier, reensamblar.
-- Interiore- de Keops revelados.
-- Versión con movimiento reducido.
-- **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria (`renderer.info` estable) y dentro de presupuesto.
+### Fase 6 — Deconstrucción (la interacción estrella) 🔄 (en curso; núcleo funcional el 2026-11-01)
+- ✅ **Bloques desde la misma tabla medida**: la capa exterior sigue las 201 hiladas existentes de Petrie con el mismo retranqueo del núcleo que la malla de Keops, así que el intercambio malla ↔ bloques coincide hilada a hilada.
+- ✅ **Honestidad de escala (§3.4)**: el interior se rellena de **superbloques** que agrupan 10 hiladas. Cada uno sabe cuántos bloques reales representa (≈ 1,13 m³ por bloque = 2,6 M m³ / 2,3 M bloques, dato derivado). El panel lo dice («≈ 2,3 millones estimados · N mostrados: la capa exterior bloque a bloque y el núcleo en superbloques de ≈ 73–135 bloques») y la ficha distingue un bloque de un superbloque.
+- ✅ **Coreografía**: anticipación de 0,6 s con brillo cálido y sacudida de cámara antes del despegue; ola de arriba abajo; vista explotada; deriva de flotación; reensamblado de abajo arriba.
+- ✅ **Explorar**: resaltado al pasar el puntero y ficha con hilada, medidas y volumen.
+- ✅ **Rayos X por hiladas**: deslizador (Bits UI, también con teclado) que oculta las hiladas por encima del corte, montada o explotada.
+- ✅ **Campo de fuerza**: al arrastrar, el rayo del puntero aparta los bloques flotantes en el kernel de compute y el muelle los devuelve.
+- ✅ **Inspector**: el bloque vuela delante de la cámara y gira junto a una figura de 1,75 m; la ficha incluye medidas, volumen, piedra y un esquema de la cantera al sur de la pirámide.
+- ✅ **Derrumbe con física real**: Rapier (SIMD) en un Web Worker. Se leen de la GPU las posiciones de los bloques de las hiladas superiores (400 / 1 000 / 2 000 / 3 000 según el nivel, 800 como máximo en WebGL2), caen con impulso hacia fuera y chocan entre sí y con el suelo; el resto sigue flotando. Al reensamblar, el muelle los devuelve desde donde cayeron.
+- ✅ **Movimiento reducido**: con `prefers-reduced-motion`, «Deconstruir» muestra un corte por la mitad de las hiladas en lugar de bloques volando.
+- ✅ **Criterio de memoria y rendimiento**: 15 ciclos seguidos de deconstruir → seleccionar → inspeccionar → derrumbar → reensamblar en la RTX 3050 en ultra (139 924 bloques). La memoria de GPU queda estable (42 geometrías / 42 texturas tras el estreno inicial, sin crecer) y la mediana sigue en 16,7 ms con el peor frame en 17,6 ms.
+- ⬜ **Construir** (línea de tiempo de 20–27 años con contadores y selector de hipótesis de rampa rotuladas).
+- ⬜ **Vista por material u origen**.
+- ⬜ **Interiores de Keops revelados**: pasajes, Gran Galería, cámaras, Gran Vacío y corredor norte, con las medidas de §2.1. Sus posiciones horizontales necesitan una fuente acotada antes de modelarlas.
+- ⬜ Polvo saliendo de las juntas en la anticipación (partículas de la Fase 8) y retumbo sonoro (Fase 8).
+- ⬜ E2E del ciclo completo en CI.
+- **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria y dentro de presupuesto (✅ medido), y están todas las acciones de §3.3 (faltan Construir, la vista por material y los interiores).
 
-### Fase 7 - Esfinge, entorno y vegetación ⬜
+### Fase 7 — Esfinge, entorno y vegetación ⬜
 - Gran Esfinge definitiva: buscar un escaneo **de la Gran Esfinge** con licencia CC BY/CC0; si no existe, esculpirla en Blender. Retirar el marcador de Maratón. Franja del Nilo; palmeras procedurales, acacias (EZ-Tree), papiro e impostores; paisaje antiguo del modo "Antes" (revestimiento de Tura, puerto, orilla).
 - **Hecho cuando**: el modo "Antes / Ahora" funciona como transición continua.
 
