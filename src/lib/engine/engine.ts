@@ -1,16 +1,26 @@
 import gsap from 'gsap';
 import Stats from 'stats-gl';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { Mesh, MeshStandardNodeMaterial, PerspectiveCamera, Scene, WebGPURenderer } from 'three/webgpu';
+import { type Mesh, MeshStandardNodeMaterial, PerspectiveCamera, Scene, WebGPURenderer } from 'three/webgpu';
 import type { Flags } from '../app/flags.ts';
 import { type Backend, clampTier, initialTier, TIER_SETTINGS, type Tier, tierAfterBenchmark } from '../app/quality.ts';
 import { type EngineState, engineState } from '../app/state.ts';
-import { FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
+import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
 import { KHUFU } from '../data/pyramids.ts';
 import { createLimestoneMaterial } from '../materials/limestone.ts';
+import { createMasonryMaterial } from '../materials/masonry.ts';
+import { createBasaltMaterial, createGraniteMaterial } from '../materials/ruins.ts';
 import { BlockField, NO_BLOCK } from '../monuments/blocks/block-field.ts';
 import type { BlockLayout, BlockLayoutRequest } from '../monuments/blocks/layout.ts';
-import { createPyramidVolumeGeometry } from '../monuments/pyramid/volume.ts';
+import { createComplex, disposeComplex } from '../monuments/complex/complex.ts';
+import { buildComplexLayout, complexExclusions } from '../monuments/complex/layout.ts';
+import { pyramidDesigns } from '../monuments/pyramid/designs.ts';
+import {
+	createPyramidObject,
+	farGeometry,
+	generateInWorker,
+	geometryFromMeshData
+} from '../monuments/pyramid/pyramid-mesh.ts';
 import { loadSphinx } from '../monuments/sphinx/sphinx.ts';
 import { CHAPTERS, resolveCameraKeys } from '../tour/chapters.ts';
 import { TourDirector } from '../tour/director.ts';
@@ -104,16 +114,25 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	scene.add(terrain.object);
 
 	const stone = new MeshStandardNodeMaterial({ color: 0xdcc9a6, roughness: 0.95 });
-	const volumes = PYRAMIDS.map((pyramid, i) => {
-		const mesh = new Mesh(createPyramidVolumeGeometry(pyramid), stone);
-		mesh.name = pyramid.id;
-		mesh.castShadow = true;
-		mesh.receiveShadow = true;
-		mesh.position.set(pyramid.x, shaped.platforms[i], pyramid.z);
-		scene.add(mesh);
-		return mesh;
+	const startTier = clampTier(flags.tier ?? initialTier(backend, matchMedia('(pointer: coarse)').matches), backend);
+	const masonry = createMasonryMaterial();
+	patch({ progress: 0.12, step: 'Raising the pyramids' });
+	const placedPyramids = pyramidDesigns(PYRAMIDS);
+	const pyramidMeshes = await generateInWorker(placedPyramids.map((placed) => placed.design));
+	const platformOf = (id: string) => shaped.platforms[ALL_PYRAMIDS.findIndex((pyramid) => pyramid.id === id)];
+	const pyramidObjects = placedPyramids.map((placed, i) => {
+		const object = createPyramidObject(
+			placed.id,
+			geometryFromMeshData(pyramidMeshes[i]),
+			farGeometry(placed.volume),
+			placed.lodDistance * TIER_SETTINGS[startTier].pyramidDetail,
+			masonry
+		);
+		object.position.set(placed.volume.x, platformOf(placed.id), placed.volume.z);
+		scene.add(object);
+		return object;
 	});
-	const khufuVolume = volumes[PYRAMIDS.findIndex((pyramid) => pyramid.id === 'khufu')];
+	const khufuVolume = pyramidObjects[placedPyramids.findIndex((placed) => placed.id === 'khufu')];
 
 	const camera = new PerspectiveCamera(45, 1, 1, 20_000);
 	const controls = new OrbitControls(camera, canvas);
@@ -141,7 +160,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	}
 
 	let field: BlockField | null = null;
-	let tier: Tier = clampTier(flags.tier ?? initialTier(backend, matchMedia('(pointer: coarse)').matches), backend);
+	let tier: Tier = startTier;
+	const complexLayout = buildComplexLayout();
 	const rockMaterial = createLimestoneMaterial();
 	const slopeAt = (x: number, z: number) =>
 		Math.hypot(groundAt(x + 4, z) - groundAt(x - 4, z), groundAt(x, z + 4) - groundAt(x, z - 4)) / 8;
@@ -150,7 +170,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			count: TIER_SETTINGS[tier].rockCount,
 			seed: 2589,
 			pyramids: PYRAMIDS,
-			exclusions: [{ x: SPHINX_PLACEMENT.x, z: SPHINX_PLACEMENT.z, halfX: 60, halfZ: 35 }],
+			exclusions: [
+				{ x: SPHINX_PLACEMENT.x, z: SPHINX_PLACEMENT.z, halfX: 60, halfZ: 35 },
+				...complexExclusions(complexLayout)
+			],
 			field: { x: -250, z: 450, radius: 1400 },
 			slopeAt
 		}),
@@ -158,6 +181,13 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		rockMaterial
 	);
 	scene.add(rocks);
+	const ruinMaterials = {
+		limestone: createLimestoneMaterial(),
+		basalt: createBasaltMaterial(),
+		granite: createGraniteMaterial()
+	};
+	const complex = createComplex(complexLayout, groundAt, ruinMaterials);
+	scene.add(complex);
 	const environment = new Environment(scene, renderer, camera, tier);
 	environment.setMode(flags.lighting);
 	document.documentElement.dataset.lighting = flags.lighting;
@@ -182,6 +212,9 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 
 	const buildField = async (nextTier: Tier, progressFrom: number) => {
 		tier = nextTier;
+		pyramidObjects.forEach((object, i) => {
+			object.levels[1].distance = placedPyramids[i].lodDistance * TIER_SETTINGS[tier].pyramidDetail;
+		});
 		publish('tier', tier);
 		patch({ tier, progress: progressFrom, step: `Cutting blocks (${tier})` });
 		const layout = await requestLayout(worker, {
@@ -384,7 +417,14 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			terrain.dispose();
 			rockMaterial.dispose();
 			disposeRockField(rocks);
-			for (const volume of volumes) volume.geometry.dispose();
+			disposeComplex(complex);
+			for (const material of Object.values(ruinMaterials)) material.dispose();
+			for (const object of pyramidObjects) {
+				object.traverse((child) => {
+					if ((child as Mesh).isMesh) (child as Mesh).geometry.dispose();
+				});
+			}
+			masonry.dispose();
 			stone.dispose();
 			void sphinxReady.then((sphinx) =>
 				sphinx?.traverse((object) => {

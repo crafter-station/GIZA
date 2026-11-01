@@ -1,7 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { FLATTENED_FOOTPRINTS, heightOfPyramidAt, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
+import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, heightOfPyramidAt, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
 import { decodeHeights, type TerrainHeightmapMeta } from '../data/terrain.ts';
+import { causewayBlocks } from '../monuments/complex/complex.ts';
+import { buildComplexLayout } from '../monuments/complex/layout.ts';
 import { createGroundSampler } from '../world/terrain/relief.ts';
 import { flattenFootprints } from '../world/terrain/shape.ts';
 import { CHAPTERS, chapterVisibility, resolveCameraKeys } from './chapters.ts';
@@ -13,6 +15,8 @@ const raw = decodeHeights(new Uint16Array(bin.buffer, bin.byteOffset, bin.byteLe
 const groundAt = createGroundSampler(flattenFootprints(raw, meta, FLATTENED_FOOTPRINTS), meta);
 const keys = resolveCameraKeys(CHAPTERS, groundAt);
 const end = CHAPTERS.length;
+const complex = buildComplexLayout();
+const structures = [...complex.blocks, ...causewayBlocks(complex, groundAt)];
 
 const SUBJECTS: Record<string, readonly [number, number] | null> = {
 	dawn: [PYRAMIDS[0].x, PYRAMIDS[0].z],
@@ -40,7 +44,7 @@ describe('tour camera path', () => {
 			const [x, y, z] = sampleTrack(keys, t, pose).position;
 			const ground = groundAt(x, z);
 			expect(y - ground, `ground at t=${t.toFixed(3)}`).toBeGreaterThan(clearance);
-			PYRAMIDS.forEach((pyramid, i) => {
+			ALL_PYRAMIDS.forEach((pyramid, i) => {
 				const platform = groundAt(pyramid.x, pyramid.z);
 				const top = platform + heightOfPyramidAt(pyramid, x, z);
 				const near =
@@ -49,8 +53,13 @@ describe('tour camera path', () => {
 						x,
 						z
 					) > 0;
-				if (near) expect(y, `${PYRAMIDS[i].id} at t=${t.toFixed(3)}`).toBeGreaterThan(top + clearance);
+				if (near) expect(y, `${ALL_PYRAMIDS[i].id} at t=${t.toFixed(3)}`).toBeGreaterThan(top + clearance);
 			});
+			for (const block of structures) {
+				const inside =
+					Math.abs(x - block.x) < block.width / 2 + clearance && Math.abs(z - block.z) < block.depth / 2 + clearance;
+				if (inside) expect(y - ground, `structure at t=${t.toFixed(3)}`).toBeGreaterThan(block.height + clearance);
+			}
 			const insideSphinx =
 				Math.abs(x - SPHINX_PLACEMENT.x) < SPHINX_PLACEMENT.length / 2 + clearance &&
 				Math.abs(z - SPHINX_PLACEMENT.z) < SPHINX_PLACEMENT.width / 2 + clearance;
