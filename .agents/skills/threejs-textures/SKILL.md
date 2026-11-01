@@ -226,7 +226,7 @@ scene.background = cubeTexture;
 scene.environment = cubeTexture; // lights Standard and Physical materials (WebGLRenderer also Lambert and Phong)
 ```
 
-HDR equirectangular files — set `mapping`, then assign; both renderers prefilter the environment themselves:
+HDR equirectangular files - set `mapping`, then assign; both renderers prefilter the environment themselves:
 
 ```javascript
 import { HDRLoader } from "three/addons/loaders/HDRLoader.js";
@@ -252,7 +252,7 @@ scene.backgroundRotation.y = Math.PI;
 
 Both renderers convert an equirectangular environment into a cube map with a larger texture internally (better sampling, more memory); when memory matters, ship a lower-resolution equirect file.
 
-`PMREMGenerator` is for generated environments — a scene such as `RoomEnvironment` captured with `fromScene`:
+`PMREMGenerator` is for generated environments - a scene such as `RoomEnvironment` captured with `fromScene`:
 
 ```javascript
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
@@ -264,7 +264,7 @@ room.dispose(); // frees the room's geometries and materials
 pmrem.dispose();
 ```
 
-Do not run a loaded equirect file through PMREMGenerator "for better reflections" — direct assignment with `mapping` set produces the same prefiltering.
+Do not run a loaded equirect file through PMREMGenerator "for better reflections" - direct assignment with `mapping` set produces the same prefiltering.
 
 ## Render Targets
 
@@ -493,8 +493,8 @@ mesh.visible = true;
 
 ## See Also
 
-- `threejs-materials` — material properties, blending, and physical materials beyond texture slots.
-- `threejs-loaders` — loading managers, glTF models, and the loader family generally.
-- `threejs-shaders` — custom GLSL texture sampling under WebGLRenderer.
-- `threejs-lighting` — environment lighting and light units.
-- `threejs-asset-pipeline` — encoding a model's textures to KTX2, WebP or AVIF with gltf-transform.
+- `threejs-materials` - material properties, blending, and physical materials beyond texture slots.
+- `threejs-loaders` - loading managers, glTF models, and the loader family generally.
+- `threejs-shaders` - custom GLSL texture sampling under WebGLRenderer.
+- `threejs-lighting` - environment lighting and light units.
+- `threejs-asset-pipeline` - encoding a model's textures to KTX2, WebP or AVIF with gltf-transform.

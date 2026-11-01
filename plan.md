@@ -1,4 +1,4 @@
-# GIZA — Plan maestro
+# GIZA - Plan maestro
 
 Experiencia web educativa en 3D sobre las pirámides de Giza: un tour cinematográfico por las tres pirámides con una interacción central, **la deconstrucción**. La pirámide se separa en los bloques que la forman, que quedan suspendidos en el aire y se pueden explorar, inspeccionar, reordenar y volver a ensamblar.
 
@@ -6,7 +6,7 @@ Este documento recoge **decisiones**, no opciones. Si una decisión se cambia, s
 
 **Idioma y estilo**: este plan es el único archivo en español. Todo lo demás (código, identificadores, documentación, commits y textos de la interfaz) se escribe en **inglés**, y el código **no lleva comentarios** (ni JSDoc). Reglas recogidas en `AGENTS.md`.
 
-**Estado**: ✅ Fases 0 a 4 concluidas (2026-11-01) · ⏭️ siguiente: Fase 5. El detalle está en §10.
+**Estado**: ✅ Fases 0 a 5 concluidas (2026-11-01) · ⏭️ siguiente: Fase 6 (deconstrucción completa). El detalle está en §10.
 
 ---
 
@@ -260,15 +260,15 @@ Principio: **procedural cuando la forma sigue reglas** (geometría arquitectóni
 | **Interiores de Keops** | Procedural a partir de planos acotados (pasajes, Gran Galería con falsa bóveda, Cámara del Rey con vigas, sarcófago de granito) | Granito pulido con clearcoat; caliza con hollín; luz de antorchas (pool de luces) | Carga perezosa |
 | **Gran Esfinge** | **GLB**: modelo fotogramétrico **de la Gran Esfinge** con licencia CC BY o CC0, retopología en Blender a ≈ 120 k triángulos con normal map horneado del original. Si no hay licencia válida, se esculpe en Blender sobre fotos de referencia (73 × 20 × 19 m, mirando al este). El GLB aportado en la Fase 0 ("Egyptian-style sphinx statue", Sofia Nasopoulou, CC BY 4.0) es una **estatua romana del Museo de Maratón**, no la Gran Esfinge: se usa solo como marcador provisional (Fases 2–6) y se sustituye en la Fase 7 | Erosión real de las capas de la roca | 120 k triángulos + KTX2 de 2 K |
 | **Pirámides de las reinas, mastabas** | Procedural: las reinas con el mismo generador; las mastabas como `InstancedMesh` de bloques rectangulares con pendiente lateral y variantes | Campo de mastabas al oeste de Keops en rejilla, como el real | Instancias |
-| **Templos y calzadas** | Procedural con kit modular (muros, pilares monolíticos de granito, pavimento de basalto) | Ruinas en "Ahora", completos en "Antes" | — |
+| **Templos y calzadas** | Procedural con kit modular (muros, pilares monolíticos de granito, pavimento de basalto) | Ruinas en "Ahora", completos en "Antes" | - |
 | **Rocas sueltas y escombros** | **Procedural en código** (icosaedro + cortes de fractura + erosión), `InstancedMesh` por variante | Dispersión por pendiente y escombros en las bases | 6 variantes × 180 triángulos |
 | **Palmeras** | Procedural en código: tronco como tubo con anillos de cicatrices de hoja (TSL), copa de frondas instanciadas como planos curvados con alfa generada en canvas | Balanceo con viento en el vertex shader; contraluz traslúcida (técnica de la skill Seijaku) | Instancias + impostores lejanos |
-| **Acacias y tamariscos** | EZ-Tree → GLB → `gltf-transform`; impostores (billboards) a distancia | Solo en el valle y la orilla | — |
-| **Papiro y juncos** | Tarjetas instanciadas con alfa | Orilla del Nilo en el modo "Antes" | — |
-| **Nilo y canal antiguo** | Plano de agua con material nodal: normales animadas, Fresnel, reflejo del cielo vía entorno (sin reflector caro) | Solo visible a distancia o en el modo "Antes" | — |
-| **Barcos, trineos, cuerdas** | Procedural sencillo en código | Escena de construcción | — |
-| **Personas (escala)** | Siluetas de baja geometría, sin rostro | Indicador de escala de 1,75 m | — |
-| **Cielo** | Atmósfera física nodal (Rayleigh + Mie con aerosol de polvo) + sol de `suncalc` | Bruma de polvo y degradados correctos al amanecer | — |
+| **Acacias y tamariscos** | EZ-Tree → GLB → `gltf-transform`; impostores (billboards) a distancia | Solo en el valle y la orilla | - |
+| **Papiro y juncos** | Tarjetas instanciadas con alfa | Orilla del Nilo en el modo "Antes" | - |
+| **Nilo y canal antiguo** | Plano de agua con material nodal: normales animadas, Fresnel, reflejo del cielo vía entorno (sin reflector caro) | Solo visible a distancia o en el modo "Antes" | - |
+| **Barcos, trineos, cuerdas** | Procedural sencillo en código | Escena de construcción | - |
+| **Personas (escala)** | Siluetas de baja geometría, sin rostro | Indicador de escala de 1,75 m | - |
+| **Cielo** | Atmósfera física nodal (Rayleigh + Mie con aerosol de polvo) + sol de `suncalc` | Bruma de polvo y degradados correctos al amanecer | - |
 | **Estrellas** | Catálogo real (Yale BSC, estrellas brillantes) con la precesión al 2560 a. C. | Thuban cerca del polo | Puntos instanciados |
 
 ---
@@ -300,7 +300,7 @@ El scroll es la línea de tiempo (`t`); todo se deriva de `t` (cámara, luz, cap
 | 8 | Sol y sombra | Sin sombra a mediodía de febrero a octubre; caras cóncavas en el equinoccio | Deslizador de fecha y hora con sol real |
 | 9 | El cielo de 2560 a. C. | Thuban, precesión e hipótesis de los conductos | Noche estrellada |
 | 10 | Antes y ahora | Deslizador que restaura el revestimiento blanco de Tura y el paisaje antiguo | Transición de materiales |
-| 11 | Explora | Modo libre con todas las acciones | — |
+| 11 | Explora | Modo libre con todas las acciones | - |
 
 Secciones editoriales (HTML sobre el canvas, como en Seijaku): **materiales** (macro de caliza → Tura → granito → yeso → cobre, con disolución por ruido), **cifras** que cuentan hacia arriba y **fuentes**.
 
@@ -398,19 +398,19 @@ Cada fase termina con: `pnpm check`, `pnpm lint`, `pnpm test` y `pnpm build` lim
 
 Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 
-### Fase 0 — Fundaciones y datos ✅ (concluida el 2026-11-01)
+### Fase 0 - Fundaciones y datos ✅ (concluida el 2026-11-01)
 - ✅ Repo git del proyecto (`main`); `open-water/`, `seijaku/` y `.atl/` ignorados; Git LFS activado para `assets-src/` (`.gitattributes`).
 - ✅ SvelteKit 3 + Svelte 5 + Tailwind 4 (proyecto creado por el usuario) pasado a `adapter-static` con prerender; Biome 2.6, Vitest 4, Playwright 1.64 (Chromium instalado; Firefox y WebKit con `pnpm exec playwright install`) y agent-browser; **todas las versiones exactas**; dependencias de runtime instaladas (three, gsap, lenis, Rapier SIMD, suncalc).
 - ✅ Revisión tecnológica 2026 (§0): Playwright + agent-browser, Rapier SIMD, nodos nativos de three r187, `suncalc` v2, `geotiff` en lugar de GDAL.
 - ✅ `open-water-immersive-3d` enlazada en `.claude/skills/`; sección "WebGPU/TSL Route" en ambas skills y `references/webgpu-tsl.md`; `AGENTS.md` y `README.md` reescritos en inglés.
 - ✅ `src/lib/content/sources.ts` (bibliografía + `Fact`) y `src/lib/data/pyramids.ts` con las cifras de §2 verificadas; correcciones aplicadas a este plan (orientación 3′ 38″, 20–27 años de obra, un bloque cada ≈ 2,5 min, granito de Micerinos, ventana sin sombra del 28 feb al 13 oct).
 - ✅ DEM procesado: la tesela descargada es la correcta (`Copernicus_DSM_10_N29_00_E031_00`); `tools/build-terrain.ts` genera `static/terrain/giza-height.{bin,json}` y el recorte fuente en `assets-src/dem/`; marco de coordenadas en `src/lib/data/geo.ts`; posiciones contrastadas con los picos del DSM.
-- ⚠️ Esfinge: el GLB aportado se guardó en `assets-src/models/sphinx-marathon/` con su licencia (CC BY 4.0), pero **no es la Gran Esfinge** (es una estatua romana de Maratón). Queda como marcador provisional; el modelo definitivo se resuelve en la Fase 7.
-- ⚠️ Fotos de referencia y paleta medida: pasan a la Fase 3 (la paleta se mide bajo la luz definitiva). Las imágenes de §11 ya las generó el usuario.
+- ✅ Esfinge: el primer GLB (estatua romana de Maratón) se descartó; en la Fase 2 se integró el modelo de la Gran Esfinge (maqueta en bronce de 1903, CC BY 4.0).
+- ✅ Paleta medida: resuelta en la Fase 3 (capturas reales frente a la paleta de §2.3, con test de regresión). Las imágenes de §11 ya las generó el usuario.
 - ✅ 11 tests unitarios (marco geográfico, heightmap, coherencia de cifras, ventana sin sombra calculada con el sol real) y 1 test E2E de la página.
 - **Hecho cuando** ✅: `pnpm dev` abre la página base (HTML con datos, sin 3D todavía), los datos tienen fuente y el DEM está en `static/terrain/`.
 
-### Fase 1 — Motor + spike de bloques ✅ (concluida el 2026-11-01)
+### Fase 1 - Motor + spike de bloques ✅ (concluida el 2026-11-01)
 - ✅ `WebGPURenderer` con respaldo WebGL2 (`?backend=webgl` lo fuerza), `powerPreference: 'high-performance'`, `setAnimationLoop` como único reloj (dt acotado a 50 ms y nunca negativo), pérdida de dispositivo → contenido HTML; store tipado (`svelte/store`) entre motor y UI; banderas `?tier=`, `?backend=`, `?perf`.
 - ✅ Niveles de calidad (`src/lib/app/quality.ts`): low 12 000 · medium 30 000 · high 70 000 · ultra 140 000 bloques, con tope de DPR por nivel; el respaldo WebGL2 se limita a "medium". **Benchmark con la escena ya visible**: descarta 30 frames de calentamiento, mide 90 y baja un nivel si la mediana supera 22 ms; repite hasta fijarlo (`data-quality="locked"`). Medir bajo el loader opaco daba resultados falsos porque Chrome no presenta el canvas tapado.
 - ✅ Loader con progreso real; generación de bloques en un Web Worker; `compileAsync` antes del primer frame; `scheduler.yield` entre pasos.
@@ -435,19 +435,19 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ✅ Tests: 22 unitarios (incluyen geometría de 44 triángulos con normales hacia fuera, conteos por nivel ±5 %, envolvente de la pirámide, niveles y banderas) y E2E que arranca, deconstruye y reensambla sin errores de consola (Chromium headless, WebGL2 por software).
 - **Hecho cuando** ✅: 60 fps en escritorio con el nivel ajustado y el respaldo WebGL2 funcionando.
 
-### Fase 2 — Maqueta a escala ✅ (concluida el 2026-11-01)
+### Fase 2 - Maqueta a escala ✅ (concluida el 2026-11-01)
 - ✅ Terreno con el DEM real (257² muestras a 32 m) y **plataformas aplanadas** bajo cada pirámide (mediana de un anillo alrededor, fundido de 60 m). Resultado coherente con las fuentes: base de Keops ≈ 60 m, Kefrén ≈ 69 m (los ≈ 10 m más alta), Micerinos ≈ 71 m, Esfinge ≈ 24 m (en su hondonada).
 - ✅ Las tres pirámides como volúmenes exactos en su posición con su **altura actual** (troncos de pirámide: Keops 138,5 m sobre una pirámide teórica de 146,6 m). Asunción a verificar en la Fase 5: en Micerinos, 102,2 m va en el eje este-oeste y 104,6 m en el norte-sur.
 - ✅ **Esfinge con modelo real** en vez de caja: "The Great Sphinx of Giza" (The Watt Institution, CC BY 4.0), que es el escaneo de una **maqueta en bronce de 1903** de Bert W. Longworth, con el recinto excavado alrededor. Se optimiza con `tools/optimize-models.ts` (1 487 624 → 118 012 triángulos, 19 → 1 malla, sin texturas de bronce, 1,4 MB con meshopt), se escala por su altura real (20 m desde el suelo del recinto) y se orienta sola hacia el este (detecta la cabeza). Se rotula como maqueta histórica. La estatua de Maratón queda descartada.
 - ✅ Tour completo de 11 capítulos (`src/lib/tour/chapters.ts`) con textos provisionales en inglés; scroll → `t` con Lenis conducido por el bucle único; GSAP también conducido por el bucle (`gsap.updateRoot`); interpolación Hermite con **tangentes monótonas** (Catmull-Rom se pasaba bajo el suelo); flechas ← →, menú de capítulos, enlaces profundos (`#khufu`) con `goto(..., { shallow, replace })` de SvelteKit 3, `?t=` para capturas; modo **Explorar libremente** con órbita y vuelta animada al tour.
 - ✅ Intercambio sencillo volumen ↔ bloques en Keops (los bloques solo se dibujan y calculan mientras están fuera de su sitio o durante el benchmark).
-- ✅ UI con **Bits UI** (Select, Toggle, Button, Progress) — decisión del usuario; recogida en `AGENTS.md`.
+- ✅ UI con **Bits UI** (Select, Toggle, Button, Progress) - decisión del usuario; recogida en `AGENTS.md`.
 - ✅ Tests (35): el recorrido de la cámara se muestrea cada 0,002 de `t` y nunca baja de 8 m sobre terreno, pirámides o Esfinge; cada capítulo encuadra su monumento a mitad de capítulo; solo un texto visible a la vez.
 - ✅ Revisión visual con agent-browser de los capítulos 1, 2, 3, 5, 6, 9 y 11 (el amanecer se movió al sur para que las tres pirámides no se tapen).
-- ⚠️ La prueba manual de scroll, modo libre y deconstrucción en el navegador se interrumpió; queda cubierta por el E2E actualizado.
+- ✅ Prueba en el navegador real (rehecha): scroll → capítulo, flechas, modo libre y vuelta, enlace profundo y deconstrucción/`Escape`. Destapó un fallo corregido: cambiar el `#capítulo` con la página abierta no movía el tour (ahora se escucha `hashchange`).
 - **Hecho cuando** ✅: se recorre todo el tour sin atravesar geometría (test) y cada capítulo encuadra lo que debe (test + capturas).
 
-### Fase 3 — Luz, cielo y atmósfera base ✅ (concluida el 2026-11-01; iniciada por otro agente y completada en esta sesión)
+### Fase 3 - Luz, cielo y atmósfera base ✅ (concluida el 2026-11-01; iniciada por otro agente y completada en esta sesión)
 - ✅ Cielo físico `SkyMesh` (Rayleigh + Mie) con **bruma de polvo** propia: el cielo se mezcla hacia el color del aerosol según el momento del día (`haze`), para que el mediodía sea pálido y polvoriento y no azul saturado.
 - ✅ Sol y luna reales con `suncalc` v2 (3 de marzo de 2026 en Giza), luz hemisférica, relleno opuesto, **sombras en cascada** (`CSMShadowNode`, 2–3 cascadas según el nivel), PMREM regenerado solo al cambiar la hora (> 0,3 h) o al saltar de capítulo, y niebla de altura integrada analíticamente con color de polvo cálido.
 - ✅ Tabla de luz por capítulo (`src/lib/world/atmosphere/lighting.ts`): amanecer → mediodía → tarde (Esfinge, sin contraluz) → atardecer (Micerinos, luz rasante) → noche con luna (cielo de 2560 a. C.) → mediodía. Selector manual (Seguir el recorrido / Amanecer / Mediodía / Atardecer / Noche).
@@ -466,39 +466,49 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ⚠️ La referencia es la paleta del plan (§2.3), no fotos con licencia: las imágenes del usuario son macros generadas de materiales, no del paisaje. Si se quieren fotos reales del paisaje, `tools/measure-lighting.ts` ya mide cualquier imagen con un manifiesto de regiones.
 - **Hecho cuando** ✅: las capturas de amanecer, mediodía, atardecer y noche coinciden con la paleta de referencia (tabla y test).
 
-### Fase 4 — Terreno ✅ (concluida el 2026-11-01)
+### Fase 4 - Terreno ✅ (concluida el 2026-11-01)
 - ✅ **Terreno por tiles con LOD** (`src/lib/world/terrain/`): 8 × 8 tiles de 1 024 m que cubren todo el DEM, con 4 niveles (128/64/32/16 segmentos, de 8 a 64 m por vértice) elegidos por distancia a la caja del tile, y **faldones** de 24 m que tapan las grietas entre niveles. Las alturas se desplazan **en la GPU**: el DEM aplanado viaja como textura RG de media precisión (altura + peso de plataforma) y una sola geometría por nivel sirve para todos los tiles. La normal se calcula por píxel a partir de la altura, así que la iluminación no cambia al saltar de nivel.
 - ✅ **Relieve de dunas idéntico en CPU y GPU** (`relief.ts`): ruido de valor con hash entero (sin seno) escrito en TypeScript y en TSL con la misma aritmética. `createGroundSampler` da la altura exacta del suelo para rocas, Esfinge y cámara; las dunas (±1 m) se amortiguan un 85 % sobre las plataformas de las pirámides.
 - ✅ **Material de arena TSL** (`src/lib/materials/ground.ts`): macro-variación de color a 900/180/35 m y vetas alargadas en la dirección del viento (no hay textura que se repita), roca madre con estratos según la pendiente, grava compactada en las plataformas y ondulaciones de viento en la normal que se desvanecen entre 25 y 140 m para no producir aliasing.
 - ✅ **Rocas procedurales** (decisión revisada con el usuario): los 6 GLB se sustituyeron por rocas **generadas en código** (`rock-geometry.ts`): icosaedro subdividido + cortes planos (fractura de la caliza en bloques) + erosión con ruido + base plana; tres familias (bloque, canto rodado, losa) y 6 variantes deterministas, **180 triángulos** cada una (antes 1 200), 0 bytes de descarga y sin licencias pendientes. Material procedural de caliza clara. Se dispersan de forma determinista (`rock-scatter.ts`): ≈ 45 % como escombros al pie de las pirámides y el resto por la meseta según la pendiente, fuera de las pirámides y del recinto de la Esfinge; 350 / 900 / 1 600 / 2 400 según el nivel; 6 draw calls instanciados; carga en segundo plano tras el primer frame.
 - ✅ Medición: RTX 3050 · WebGPU · ultra con terreno, rocas, 140 000 bloques y el pipeline de la Fase 3 → mediana 16,7 ms (60 fps), p95 16,9 ms.
 - ✅ Tests (56): geometría de tiles (conteos, faldón cerrado, caras hacia arriba y faldones hacia fuera), selección de LOD, dunas acotadas y continuas, dispersión (conteo por nivel, exclusiones, escombros en las bases, determinismo); el recorrido de cámara usa ya el suelo con dunas. E2E en Chromium pasa (lento en render por software con el pipeline completo: 2,2 min).
-- ⚠️ La paleta de arena se reajustará con la luz definitiva de la Fase 3 (los colores están en `GROUND_PALETTE`).
-- ⚠️ Fuera del cuadrado de 8,2 km no hay terreno; el horizonte lejano queda para la atmósfera (Fase 3/8).
+- ✅ Paleta de arena reajustada con la luz de la Fase 3 (`GROUND_PALETTE`: #DDB47C / #C7915A) y medida en pantalla: #BB986B a mediodía frente a la referencia #C49A6C.
+- ✅ **Horizonte**: anillo de terreno de 24 km alrededor del DEM (`createHorizonGeometry`, celdas de 128 → 512 → 2 048 m, ≈ 26 000 triángulos, 1 draw call) con el **mismo material**: fuera del cuadrado la altura se funde en 2,5 km hacia el nivel regional (desierto ≈ 68 m al oeste con dunas grandes, valle del Nilo ≈ 20 m al este), y la bruma de la Fase 3 lo une con el cielo. Sin borde visible en vista aérea a 900 m. El norte real (tesela N30 E031) sigue siendo una mejora opcional.
 - ✅ Solapamiento de UI resuelto con el rediseño: marca arriba a la izquierda, luz arriba a la derecha, panel de bloques a la derecha, capítulo abajo a la izquierda y navegación abajo a la derecha.
 - **Hecho cuando** ✅: el suelo no repite (todo es ruido procedural, sin texturas en mosaico) y no se ven bordes entre tiles (faldones + normales por píxel), comprobado en capturas a 300 m y a 1–2 km.
 
-### Fase 5 — Pirámides ⬜
-- Generador procedural desde datos: hiladas reales de Keops, concavidad, revestimientos de Kefrén y Micerinos, daños, entrada y túnel de al-Mamún; materiales de caliza, Tura y granito; LOD.
-- Pirámides de las reinas, templos, calzadas y mastabas (kit modular).
-- **Hecho cuando**: a 5 m, 100 m y 2 km cada pirámide se reconoce frente a las fotos de referencia.
-
+### Fase 5 - Pirámides ✅ (concluida el 2026-11-01)
+- ✅ **Generador procedural** (`src/lib/monuments/pyramid/generator.ts`, en un Web Worker): núcleo escalonado hilada a hilada, segmentado en bloques de ≈ 3 m con retranqueos aleatorios, bloques que faltan (más en esquinas y abajo), caras con huella y contrahuella, revestimientos lisos parciales sobre la pendiente original y huecos tallados. Atributos por vértice (`stone`, `along`, `courseV`, `course`) para que el material dibuje juntas reales. LOD de 2 niveles con `THREE.LOD` (detalle cerca; volumen simple a > 1,8 km).
+- ✅ **Keops**: 203 hiladas con un **perfil reconstruido** que cumple exactamente los datos que Petrie da en el texto (fuente primaria leída en el PDF de *The Pyramids and Temples of Gizeh*): hilada 1 = 58,6″, 1 + 2 = 107,7″, 1–6 = 278,1″, la hilada 19 de 37,94″ más gruesa que las 11 anteriores y las 14 siguientes, las 20 y 21 las más finas hasta la 77, un pico en la 35, 23 picos con adelgazamiento posterior y cima a 5 408″. Concavidad de las caras (≈ 0,9 m en el centro), restos de revestimiento en la primera hilada, **entrada original** (cara norte, hilada 19, ≈ 17 m, 7,9 m al este del eje) y **túnel de al-Mamún** (hiladas 6–7, ≈ 7 m).
+- ✅ **Kefrén**: revestimiento de Tura en el tercio superior con borde irregular y restos de granito en la base. **Micerinos**: 7 hiladas inferiores con revestimiento parcial de granito de Asuán y la **brecha de 1196** en la cara norte.
+- ✅ **Seis pirámides de las reinas** (G1-a/b/c y G3-a/b/c) con posición y medidas de las fuentes (Verner, Lehner y Hawass vía Wikipedia); G3-b y G3-c escalonadas de 4 plataformas.
+- ✅ **Compl-jos**: templos funerarios en ruinas al este de cada pirámide (el de Keops con su pavimento de basalto), templo del valle de granito junto a la Esfinge, tres calzadas que siguen el terreno y los cementerios de mastabas oeste y este; todo con piezas instanciadas (6 draw calls).
+- ✅ **Material de mampostería TSL** (`materials/masonry.ts`): juntas verticales y de lecho, tono por bloque, pátina, polvo en las huellas, caliza de Tura con manchas verticales y granito con moteado y meteorización; doble cara para que los huecos de bloque muestren su techo en sombra (antes se veía el cielo a través).
+- ✅ **Detalle según el nivel de calidad**: la distancia a la que cada pirámide pasa a su volumen simple se escala por nivel (low ×0,25, medium ×0,5, high ×0,8, ultra ×1) y se actualiza si el benchmark baja de nivel. Lo destapó el E2E en render por software, pero beneficia a cualquier equipo modesto.
+- ✅ E2E: deconstrucción (4,2 min) e iluminación (5–6 min) pasan en Chromium sin GPU; el servidor de prueba tiene 5 min de margen porque el build ya tarda ≈ 1 min 48 s.
+- ✅ Medidas: 313 000 triángulos entre las 9 pirámides (Keops 161 000), generados en 373 ms dentro del worker; RTX 3050 en ultra: mediana 16,7 ms (60 fps) en los capítulos de Keops y de la Esfinge.
+- ✅ Tests (84 en total): perfil de hiladas frente a los anclajes de Petrie, presupuesto y envolvente de cada pirámide, revestimientos de Kefrén y Micerinos, entrada y túnel de Keops, complejos sin invadir pirámides y recorrido de cámara libre de reinas, templos y mastabas.
+- ✅ Revisión visual a 5 m (bloques, juntas y huecos en la base de Keops), a 100–300 m (cara norte de Keops, Kefrén al atardecer, Micerinos) y a ≈ 2 km (vista aérea de toda la meseta).
+- ⚠️ Datos que faltan para pasar de esquemático a medido: la tabla completa de hiladas de Petrie (Lám. VIII, un gráfico; hay que digitalizarla para sustituir el perfil reconstruido), los perfiles de hiladas de Kefrén, Micerinos y las reinas, la altura actual de las reinas (estimada como fracción de la original), y los planos de templos y mastabas (disposición esquemática). Todo está aislado en `designs.ts` y `complex/layout.ts`, así que basta con cambiar datos.
+- **Hecho cuando** ✅: a 5 m, a 100 m y a 2 km cada pirámide se reconoce (capturas revisadas).
+-
 ### Fase 6 — Deconstrucción (la interacción estrella) ⬜
 - Generación de bloques en worker y build desde la misma tabla de hiladas; intercambio invisible malla ↔ bloques.
 - Coreografía completa (§3.2) con GSAP; acciones de §3.3: explorar, campo de fuerza, extraer al Inspector, rayos X por hiladas, vista por material, construir con línea de tiempo y rampas, derrumbe con Rapier, reensamblar.
-- Interiores de Keops revelados.
+- Interiore- de Keops revelados.
 - Versión con movimiento reducido.
 - **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria (`renderer.info` estable) y dentro de presupuesto.
 
-### Fase 7 — Esfinge, entorno y vegetación ⬜
+### Fase 7 - Esfinge, entorno y vegetación ⬜
 - Gran Esfinge definitiva: buscar un escaneo **de la Gran Esfinge** con licencia CC BY/CC0; si no existe, esculpirla en Blender. Retirar el marcador de Maratón. Franja del Nilo; palmeras procedurales, acacias (EZ-Tree), papiro e impostores; paisaje antiguo del modo "Antes" (revestimiento de Tura, puerto, orilla).
 - **Hecho cuando**: el modo "Antes / Ahora" funciona como transición continua.
 
-### Fase 8 — Atmósfera viva y sonido ⬜
+### Fase 8 —-Atmósfera viva y sonido ⬜
 - Arena arrastrada, polvo en haces, calor en el horizonte, antorchas, noche con cielo de 2560 a. C.
 - Ambiente sonoro (viento, arena, interior de piedra, retumbo de la deconstrucción, impactos del derrumbe), activado solo tras un gesto.
 
-### Fase 9 — Narrativa, UI y contenido ⬜
+### Fase 9 —-Narrativa, UI y contenido ⬜
 - Componentes Svelte: capítulos, panel de pirámide, Inspector, línea de tiempo, menú, plano, créditos y fuentes; tipografía con SplitText; secciones editoriales (materiales, cifras).
 - Textos definitivos en inglés (`en.json`, fuente de verdad) y su traducción al español (`es.json`); accesibilidad (teclado, foco, lectores de pantalla, alternativa HTML de cada hotspot).
 

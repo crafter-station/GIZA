@@ -44,7 +44,7 @@ renderer.setAnimationLoop(animate);
 
 ## How the System Fits Together
 
-- **AnimationClip**: keyframe data — tracks of times and values, no playback state.
+- **AnimationClip**: keyframe data - tracks of times and values, no playback state.
 - **AnimationMixer**: plays clips on one root object and all its descendants.
 - **AnimationAction**: playback control for one clip on one mixer.
 
@@ -63,7 +63,7 @@ const clip = new THREE.AnimationClip("bounce", 2, [track]); // duration in secon
 // pass -1 as the duration to derive it from the tracks
 ```
 
-Track names follow `nodeName.objectName[objectIndex].propertyName[propertyIndex]`; all parts except the property are optional. `.position` binds the root's position, `.material.opacity` a material property, `.position[y]` one component, `.morphTargetInfluences[smile]` one morph target, `Hips.position` a named descendant — that is how bones are addressed in a skinned model. Object names may be `material`, `materials`, `bones` or `map`.
+Track names follow `nodeName.objectName[objectIndex].propertyName[propertyIndex]`; all parts except the property are optional. `.position` binds the root's position, `.material.opacity` a material property, `.position[y]` one component, `.morphTargetInfluences[smile]` one morph target, `Hips.position` a named descendant - that is how bones are addressed in a skinned model. Object names may be `material`, `materials`, `bones` or `map`.
 
 ```javascript
 // Number track (value size 1); create the material with transparent: true, or opacity is ignored
@@ -320,7 +320,7 @@ Driving morph targets:
 // Procedural, inside the render loop after timer.update():
 // mesh.morphTargetInfluences[0] = (Math.sin(timer.getElapsed() * 2) + 1) / 2;
 
-// Keyframed: a Number track drives one target by name — never a String track
+// Keyframed: a Number track drives one target by name - never a String track
 const track = new THREE.NumberKeyframeTrack(
   ".morphTargetInfluences[raised]",
   [0, 0.5, 1],
@@ -386,7 +386,7 @@ const cut = THREE.AnimationUtils.subclip(clip, "half", 0, 31, 30);
 const copy = clip.clone(); // independent deep copy
 
 clip.optimize(); // drops duplicate-time keys, and keys equal to both neighbours on any non-smooth track (Bezier tangents are not compacted)
-clip.resetDuration(); // recomputes duration from the longest track — it does not seek
+clip.resetDuration(); // recomputes duration from the longest track - it does not seek
 console.log(clip.validate()); // false for a fractional values-to-times ratio, an empty track, unsorted times or NaN
 ```
 
@@ -412,7 +412,7 @@ renderer.setAnimationLoop(animate);
 
 ## Performance
 
-- The same AnimationClip can feed any number of mixers — share one clip set across characters instead of copying it.
+- The same AnimationClip can feed any number of mixers - share one clip set across characters instead of copying it.
 - Call `mixer.update()` only for characters that are visible or about to be; an un-updated mixer simply leaves the last pose in place.
 - A SkinnedMesh computes its bounding sphere once, the first time culling or raycasting needs it, so a clip that moves it far from that pose can get it culled at the screen edge: after `mixer.update()` call `mixer.getRoot().updateMatrixWorld()` then `skinnedMesh.computeBoundingSphere()` (a CPU pass over every vertex) or set `skinnedMesh.frustumCulled = false`.
 
@@ -425,7 +425,7 @@ mixer.uncacheRoot(mesh); // releases the property bindings created for the model
 
 ## WebGPU and TSL
 
-Everything above — mixer, actions, bone transforms, morph weights — is computed on the CPU and drives a model under WebGPURenderer unchanged. TSL adds animation on the GPU: `time` (elapsed seconds) and `deltaTime` (seconds since the previous frame) are float uniforms the renderer refreshes every frame, and the oscillators `oscSine`, `oscSquare`, `oscTriangle` and `oscSawtooth` return 0-to-1 waves with a one-second period from a time node, defaulting to `time` (`oscSine(time.mul(0.5))` takes two seconds). Per-vertex motion needs a node material and a subdivided mesh.
+Everything above - mixer, actions, bone transforms, morph weights - is computed on the CPU and drives a model under WebGPURenderer unchanged. TSL adds animation on the GPU: `time` (elapsed seconds) and `deltaTime` (seconds since the previous frame) are float uniforms the renderer refreshes every frame, and the oscillators `oscSine`, `oscSquare`, `oscTriangle` and `oscSawtooth` return 0-to-1 waves with a one-second period from a time node, defaulting to `time` (`oscSine(time.mul(0.5))` takes two seconds). Per-vertex motion needs a node material and a subdivided mesh.
 
 ```javascript
 import * as THREE from "three/webgpu";
@@ -460,7 +460,7 @@ function animate() {
 renderer.setAnimationLoop(animate);
 ```
 
-On a skinned mesh, build displacement on `positionLocal`: skinning, morph targets, batching and instancing are applied to it before `positionNode` runs, so the mixer-driven pose survives. `positionGeometry` is the raw rest-pose attribute — never the base for displacement on an animated mesh.
+On a skinned mesh, build displacement on `positionLocal`: skinning, morph targets, batching and instancing are applied to it before `positionNode` runs, so the mixer-driven pose survives. `positionGeometry` is the raw rest-pose attribute - never the base for displacement on an animated mesh.
 
 ```javascript
 import * as THREE from "three/webgpu";
@@ -495,6 +495,6 @@ if (skinnedMesh) skinnedMesh.material = material;
 
 ## See Also
 
-- `threejs-fundamentals` — render loop, Timer, renderer and scene setup
-- `threejs-loaders` — loading glTF models and their animation clips
-- `threejs-shaders` — GPU vertex displacement with TSL or ShaderMaterial
+- `threejs-fundamentals` - render loop, Timer, renderer and scene setup
+- `threejs-loaders` - loading glTF models and their animation clips
+- `threejs-shaders` - GPU vertex displacement with TSL or ShaderMaterial
