@@ -3,8 +3,6 @@ import { fact } from './sources.ts';
 const UNITS = ['', '𓏺', '𓏻', '𓏼', '𓏽', '𓏾', '𓏿', '𓐀', '𓐁', '𓐂'] as const;
 const TEN = '𓎆';
 
-export const PYRAMID_SIGN = '𓉴';
-
 export const ROYAL_NAMES = {
 	khufu: fact(
 		{ glyphs: '𓐍𓅱𓆑𓅱', transliteration: 'ḫwfw', gardiner: 'Aa1 G43 I9 G43' },

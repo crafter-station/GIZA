@@ -1,4 +1,8 @@
 <script lang="ts">
+import Icon from '@iconify/svelte';
+import arrowLeft from '@iconify-icons/lucide/arrow-left';
+import arrowRight from '@iconify-icons/lucide/arrow-right';
+import chevronDown from '@iconify-icons/lucide/chevron-down';
 import { Button, Select, Toggle } from 'bits-ui';
 import type { TourState } from '../app/state.ts';
 import { egyptianNumeral } from '../content/hieroglyphs.ts';
@@ -31,7 +35,7 @@ const arrow =
 			onclick={() => ongo(tour.chapter - 1)}
 			aria-label="Previous chapter"
 		>
-			←
+			<Icon icon={arrowLeft} class="size-4" aria-hidden="true" />
 		</Button.Root>
 		<Select.Root type="single" {items} {disabled} value={current.value} onValueChange={(value) => ongo(Number(value))}>
 			<Select.Trigger
@@ -42,6 +46,7 @@ const arrow =
 					>{egyptianNumeral(tour.chapter + 1)}</span
 				>
 				<span class="truncate">{current.label}</span>
+				<Icon icon={chevronDown} class="size-3 shrink-0 text-gold-light/80" aria-hidden="true" />
 			</Select.Trigger>
 			<Select.Portal>
 				<Select.Content
@@ -70,7 +75,7 @@ const arrow =
 			onclick={() => ongo(tour.chapter + 1)}
 			aria-label="Next chapter"
 		>
-			→
+			<Icon icon={arrowRight} class="size-4" aria-hidden="true" />
 		</Button.Root>
 		<Toggle.Root
 			class="rounded-sm border border-gold bg-gold px-3 py-1.5 font-semibold whitespace-nowrap text-ink shadow-[inset_0_1px_0_rgb(255_255_255/0.35)] transition hover:bg-gold-light disabled:opacity-40"

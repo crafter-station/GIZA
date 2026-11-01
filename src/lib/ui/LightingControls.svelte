@@ -1,4 +1,6 @@
 <script lang="ts">
+import Icon from '@iconify/svelte';
+import chevronDown from '@iconify-icons/lucide/chevron-down';
 import { Select } from 'bits-ui';
 import { isLightingMode, LIGHTING_OPTIONS, type LightingMode } from '#lib/world/atmosphere/lighting.ts';
 
@@ -37,7 +39,7 @@ const label = $derived(LIGHTING_OPTIONS.find((option) => option.value === value)
 		>
 			<span class="glyph text-lg text-gold-light" aria-hidden="true">{SIGNS[value]}</span>
 			<span class="font-medium">{label}</span>
-			<span aria-hidden="true" class="text-xs text-gold-light/80">⌄</span>
+			<Icon icon={chevronDown} class="size-3 shrink-0 text-gold-light/80" aria-hidden="true" />
 		</Select.Trigger>
 		<Select.Portal>
 			<Select.Content
@@ -60,7 +62,4 @@ const label = $derived(LIGHTING_OPTIONS.find((option) => option.value === value)
 			</Select.Content>
 		</Select.Portal>
 	</Select.Root>
-	<p class="mt-1.5 text-[10px] tracking-wider text-papyrus/90 [text-shadow:0_1px_4px_#000]">
-		Modern solar study · 3 March 2026
-	</p>
 </div>

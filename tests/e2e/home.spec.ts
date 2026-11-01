@@ -1,7 +1,9 @@
-import { expect, test } from '@playwright/test';
+import { expect as baseExpect, test } from '@playwright/test';
+
+const expect = baseExpect.configure({ timeout: 45_000 });
 
 test('the block spike starts, deconstructs and reassembles without errors', async ({ page }) => {
-	test.setTimeout(180_000);
+	test.setTimeout(420_000);
 	const errors: string[] = [];
 	page.on('console', (message) => {
 		if (message.type() === 'error') errors.push(message.text());

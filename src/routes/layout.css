@@ -79,3 +79,7 @@ html.lenis body {
 .lenis [data-lenis-prevent] {
 	overscroll-behavior: contain;
 }
+
+button {
+	cursor: pointer;
+}

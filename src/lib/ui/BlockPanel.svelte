@@ -1,7 +1,7 @@
 <script lang="ts">
 import { Button } from 'bits-ui';
 import type { EngineState } from '../app/state.ts';
-import { PYRAMID_SIGN, ROYAL_NAMES } from '../content/hieroglyphs.ts';
+import { ROYAL_NAMES } from '../content/hieroglyphs.ts';
 import { KHUFU } from '../data/pyramids.ts';
 import Cartouche from './egypt/Cartouche.svelte';
 
@@ -44,8 +44,11 @@ const name = ROYAL_NAMES.khufu.value;
 				disabled={state.status !== 'ready' || deconstructed}
 				onclick={ondeconstruct}
 			>
-				<span class="glyph text-base text-gold-light transition group-hover:-translate-y-0.5" aria-hidden="true"
-					>{PYRAMID_SIGN}</span
+				<img
+					src="/images/pyramid-sign.webp"
+					alt=""
+					aria-hidden="true"
+					class="h-5 w-8 shrink-0 object-contain transition group-hover:-translate-y-0.5"
 				>
 				Deconstruct
 			</Button.Root>
@@ -91,11 +94,11 @@ const name = ROYAL_NAMES.khufu.value;
 		<dl class="mt-3 flex gap-2 text-[10px] tracking-wider text-ink/60 uppercase" data-testid="engine-info">
 			<div class="rounded-full border border-ink/15 px-2 py-0.5">
 				<dt class="sr-only">Backend</dt>
-				<dd>{state.backend ?? '—'}</dd>
+				<dd>{state.backend ?? '-'}</dd>
 			</div>
 			<div class="rounded-full border border-ink/15 px-2 py-0.5">
 				<dt class="sr-only">Quality</dt>
-				<dd>{state.tier ?? '—'}</dd>
+				<dd>{state.tier ?? '-'}</dd>
 			</div>
 		</dl>
 	</div>

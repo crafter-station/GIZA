@@ -2,7 +2,6 @@
 import { onMount } from 'svelte';
 import { parseFlags } from '#lib/app/flags.ts';
 import { engineState, tourState } from '#lib/app/state.ts';
-import { PYRAMID_SIGN } from '#lib/content/hieroglyphs.ts';
 import { KHAFRE, KHUFU, MENKAURE } from '#lib/data/pyramids.ts';
 import type { Engine } from '#lib/engine/engine.ts';
 import { CHAPTERS } from '#lib/tour/chapters.ts';
@@ -95,18 +94,24 @@ onMount(() => {
 			else if ($tourState.mode === 'free') engine.exitFree();
 		}
 	};
+	const onHashChange = () => {
+		const linked = CHAPTERS.findIndex((item) => `#${item.id}` === location.hash);
+		if (engine && linked >= 0 && linked !== $tourState.chapter) engine.goToChapter(linked);
+	};
 	window.addEventListener('keydown', onKeyDown);
+	window.addEventListener('hashchange', onHashChange);
 
 	return () => {
 		disposed = true;
 		window.removeEventListener('keydown', onKeyDown);
+		window.removeEventListener('hashchange', onHashChange);
 		started?.dispose();
 	};
 });
 </script>
 
 <svelte:head>
-	<title>Giza — The Pyramids in 3D</title>
+	<title>Giza - The Pyramids in 3D</title>
 	<meta name="description" content="An educational 3D journey through the pyramids of Giza.">
 </svelte:head>
 
@@ -125,7 +130,7 @@ onMount(() => {
 			<p class="text-lg" role="alert">The 3D view could not start: {$engineState.error}</p>
 			<ul class="grid gap-2" data-testid="pyramid-list">
 				{#each pyramids as pyramid (pyramid.name)}
-					<li><strong>{pyramid.name}</strong> — {pyramid.height} m tall originally, base {pyramid.base}</li>
+					<li><strong>{pyramid.name}</strong> - {pyramid.height} m tall originally, base {pyramid.base}</li>
 				{/each}
 			</ul>
 		</div>
@@ -142,7 +147,7 @@ onMount(() => {
 	<header
 		class="pointer-events-none fixed top-4 left-4 flex items-center gap-3 rounded-sm border border-gold/60 bg-lapis-deep/85 py-2 pr-4 pl-3 text-papyrus shadow-lg backdrop-blur-sm"
 	>
-		<span class="glyph text-2xl text-gold-light" aria-hidden="true">{PYRAMID_SIGN}</span>
+		<img src="/images/pyramid-sign.webp" alt="" aria-hidden="true" class="h-8 w-14 shrink-0 object-contain">
 		<div>
 			<h1 class="font-display text-2xl leading-none font-semibold tracking-wide">Giza</h1>
 			<p class="mt-0.5 text-[10px] tracking-[0.25em] text-gold-light/90 uppercase">The pyramids, block by block</p>

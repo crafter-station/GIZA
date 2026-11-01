@@ -1,6 +1,6 @@
 <script lang="ts">
 import type { TourState } from '../app/state.ts';
-import { egyptianNumeral, PYRAMID_SIGN } from '../content/hieroglyphs.ts';
+import { egyptianNumeral } from '../content/hieroglyphs.ts';
 import { CHAPTERS, chapterVisibility } from '../tour/chapters.ts';
 
 interface Props {
@@ -32,7 +32,7 @@ let { tour }: Props = $props();
 				</h2>
 				<p class="mt-2.5 text-sm leading-relaxed text-ink/80">{chapter.summary}</p>
 				<p class="register mt-4 flex items-center gap-2 pt-2 text-[10px] tracking-[0.25em] text-ink/50 uppercase">
-					<span class="glyph text-sm text-gold" aria-hidden="true">{PYRAMID_SIGN}</span>
+					<img src="/images/pyramid-sign.webp" alt="" aria-hidden="true" class="h-4 w-7 shrink-0 object-contain">
 					Giza · {index + 1} / {CHAPTERS.length}
 				</p>
 			</div>
