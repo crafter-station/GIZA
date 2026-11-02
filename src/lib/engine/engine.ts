@@ -72,6 +72,7 @@ export interface Engine {
 	setRamp(ramp: RampId | null): void;
 	setOrigins(enabled: boolean): void;
 	setSound(enabled: boolean): void;
+	startDrone(): void;
 	setForceField(enabled: boolean): void;
 	inspect(index: number | null): void;
 	collapse(): Promise<void>;
@@ -87,6 +88,7 @@ const WEBGL_PHYSICS_BODIES = 800;
 const TORCH_SPACING = 40;
 const SUN_REFERENCE_INTENSITY = 3.4;
 const SAND_HISS_HEIGHT = 120;
+const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
 
 const KHUFU_SHAPE = {
 	baseSide: KHUFU.baseSide.value,
@@ -631,6 +633,16 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			ramp = next;
 			updateRamps();
 			patch({ ramp: next });
+		},
+		startDrone: () => {
+			const khafre = pyramidObjects[placedPyramids.findIndex((placed) => placed.id === 'khafre')];
+			const center = khufuVolume.position
+				.clone()
+				.lerp(khafre?.position ?? khufuVolume.position, DRONE_CENTER_TOWARD_KHAFRE);
+			director.startDrone(
+				[center.x, khufuVolume.position.y, center.z],
+				matchMedia('(prefers-reduced-motion: reduce)').matches
+			);
 		},
 		setSound: (enabled) => {
 			if (enabled && !soundscape) soundscape = new Soundscape();

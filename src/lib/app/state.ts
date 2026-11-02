@@ -60,6 +60,7 @@ export interface TourState {
 	t: number;
 	chapter: number;
 	mode: 'tour' | 'free';
+	drone: boolean;
 }
 
-export const tourState = writable<TourState>({ t: 0, chapter: 0, mode: 'tour' });
+export const tourState = writable<TourState>({ t: 0, chapter: 0, mode: 'tour', drone: false });

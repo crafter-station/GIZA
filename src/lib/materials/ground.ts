@@ -40,7 +40,6 @@ import {
 import type { TerrainHeightmapMeta } from '../data/terrain.ts';
 import { DRIFT_SPEED, GUST_PERIOD_SECONDS, WIND_DIRECTION_XZ } from '../world/atmosphere/wind.ts';
 import { bedrockZoneNode, erosionHeightNode, fissureNode } from '../world/terrain/erosion.ts';
-import { valueNoiseNode } from '../world/terrain/noise.ts';
 import { duneHeightNode, PLATFORM_DAMPING } from '../world/terrain/relief.ts';
 import type { ShapedTerrain } from '../world/terrain/shape.ts';
 import { SKIRT_DEPTH } from '../world/terrain/tiles.ts';
@@ -100,11 +99,9 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		);
 
 	const squareCenter = vec2(meta.center.x, meta.center.z);
-	const heightAt = (xz: Node<'vec2'>, erosionWeight: Node<'float'> = float(1)) => {
+	const heightAt = (xz: Node<'vec2'>) => {
 		const ground = sampleGround(xz);
-		const measured = ground.r
-			.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))))
-			.add(erosionHeightNode(xz, ground.g).mul(erosionWeight));
+		const measured = ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
 		const offset = abs(xz.sub(squareCenter)).sub(meta.halfExtent);
 		const beyond = smoothstep(0, HORIZON_BLEND, max(offset.x, offset.y));
 		const desert = oneMinus(smoothstep(VALLEY_EDGE[0], VALLEY_EDGE[1], xz.x));
@@ -118,16 +115,21 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 
 	material.positionNode = Fn(() => {
 		const world = modelWorldMatrix.mul(vec4(positionLocal, 1)).xz;
-		return vec3(positionLocal.x, heightAt(world).sub(attribute('skirt', 'float').mul(SKIRT_DEPTH)), positionLocal.z);
+		return vec3(
+			positionLocal.x,
+			heightAt(world)
+				.add(erosionHeightNode(world, sampleGround(world).g))
+				.sub(attribute('skirt', 'float').mul(SKIRT_DEPTH)),
+			positionLocal.z
+		);
 	})();
 
 	const xz = positionWorld.xz;
 	const platform = sampleGround(xz).g;
-	const normalErosion = oneMinus(smoothstep(80, 260, distance(cameraPosition, positionWorld)));
-	const left = heightAt(xz.sub(vec2(NORMAL_STEP, 0)), normalErosion);
-	const right = heightAt(xz.add(vec2(NORMAL_STEP, 0)), normalErosion);
-	const north = heightAt(xz.sub(vec2(0, NORMAL_STEP)), normalErosion);
-	const south = heightAt(xz.add(vec2(0, NORMAL_STEP)), normalErosion);
+	const left = heightAt(xz.sub(vec2(NORMAL_STEP, 0)));
+	const right = heightAt(xz.add(vec2(NORMAL_STEP, 0)));
+	const north = heightAt(xz.sub(vec2(0, NORMAL_STEP)));
+	const south = heightAt(xz.add(vec2(0, NORMAL_STEP)));
 	const terrainNormal = normalize(vec3(left.sub(right), float(NORMAL_STEP * 2), north.sub(south)));
 
 	const macro = mx_noise_float(vec3(xz.div(900), 0.3))
@@ -138,7 +140,7 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 	const slope = oneMinus(terrainNormal.y);
 	const exposed = bedrockZoneNode(xz)
 		.mul(oneMinus(platform).pow(2))
-		.mul(smoothstep(0.3, 0.72, valueNoiseNode(xz.div(120).add(vec2(8, -5)))).mul(0.75).add(0.2));
+		.mul(smoothstep(-0.1, 0.18, macro).mul(0.75).add(0.2));
 	const steepRock = smoothstep(0.12, 0.3, slope);
 	const rock = max(steepRock, exposed);
 	const strata = sin(positionWorld.y.mul((Math.PI * 2) / 1.4).add(macro.mul(2)))

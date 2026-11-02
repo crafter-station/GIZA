@@ -11,6 +11,9 @@ importers:
       '@dimforge/rapier3d-simd-compat':
         specifier: 0.21.0
         version: 0.21.0
+      '@iconify-icons/andrsrxn':
+        specifier: 2.0.3
+        version: 2.0.3
       gsap:
         specifier: 3.15.0
         version: 3.15.0
@@ -256,6 +259,9 @@ packages:
 
   '@gltf-transform/functions@4.5.1':
     resolution: {integrity: sha512-rfm4nQY2DJ+ip1e15xp7YfQwhRno3kPLcGw4EZiRk1dVwMV3cdFMcF08glYcO/+oLyYkUEs3xXMJYXa0cPgcTg==}
+
+  '@iconify-icons/andrsrxn@2.0.3':
+    resolution: {integrity: sha512-7TUDJ/weeK+3ac6e9yx4ih7M2/evWjGWugxJkBwMyX3ifCDpg6GXjCtE96mxR8TIRm2J8oNqN0Oukia5d1JC4Q==}
 
   '@iconify-icons/lucide@2.0.26':
     resolution: {integrity: sha512-gFNNA+jsj2/HhjOqFIxlwtXgLeLWkseTxyiUaSej5PD9HaNCHF0OrGcPSDQebvn1OKiBKChzSf1I5VARED1u8A==}
@@ -2045,6 +2051,10 @@ snapshots:
       ndarray-pixels: 5.2.0(@types/node@24.19.2)
     transitivePeerDependencies:
       - '@types/node'
+
+  '@iconify-icons/andrsrxn@2.0.3':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-icons/lucide@2.0.26':
     dependencies:

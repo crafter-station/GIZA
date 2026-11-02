@@ -32,8 +32,9 @@ export function erosionHeightNode(xz: Node<'vec2'>, platformWeight: Node<'float'
 }
 
 export function fissureNode(xz: Node<'vec2'>): Node<'float'> {
-	const warp = valueNoiseNode(xz.div(55).add(vec2(12, -3))).mul(2);
+	const pattern = valueNoiseNode(xz.div(55).add(vec2(12, -3)));
+	const warp = pattern.mul(2);
 	const line = oneMinus(smoothstep(0.03, 0.14, abs(sin(xz.x.add(xz.y.mul(0.37)).div(11).add(warp)))));
-	const gaps = smoothstep(0.45, 0.68, valueNoiseNode(xz.div(38).add(vec2(-8, 11))));
+	const gaps = smoothstep(0.45, 0.68, pattern);
 	return line.mul(gaps);
 }

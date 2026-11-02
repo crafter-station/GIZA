@@ -4,7 +4,8 @@ import type { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { type PerspectiveCamera, Vector3 } from 'three/webgpu';
 import { tourState } from '../app/state.ts';
 import { chapterIndexAt } from './chapters.ts';
-import { type CameraKey, type CameraPose, createPose, sampleTrack } from './track.ts';
+import { dronePose } from './drone.ts';
+import { type CameraKey, type CameraPose, createPose, sampleTrack, type Vec3 } from './track.ts';
 
 const FAR_JUMP_CHAPTERS = 2;
 const RETURN_SECONDS = 1.2;
@@ -15,7 +16,12 @@ export class TourDirector {
 	private readonly target = new Vector3();
 	private mode: 'tour' | 'free' = 'tour';
 	private returning: gsap.core.Tween | null = null;
-	private published = { t: -1, chapter: -1, mode: '' };
+	private published = { t: -1, chapter: -1, mode: '', drone: false };
+	private drone: { center: Vec3; start: number | null; still: boolean } | null = null;
+	private readonly stopDrone = () => {
+		this.drone = null;
+		this.publish();
+	};
 	t = 0;
 	private shakeStrength = 0;
 	private shaking: gsap.core.Tween | null = null;
@@ -31,6 +37,13 @@ export class TourDirector {
 		this.lenis = new Lenis({ autoRaf: false, smoothWheel: true });
 		this.controls.enabled = false;
 		if (fixedT !== null) this.lenis.stop();
+		this.controls.addEventListener('start', this.stopDrone);
+	}
+
+	startDrone(center: Vec3, still: boolean): void {
+		this.enterFree();
+		this.drone = { center, start: null, still };
+		this.publish();
 	}
 
 	get chapter(): number {
@@ -47,7 +60,8 @@ export class TourDirector {
 			this.lenis.raf(time);
 			this.t = this.lenis.progress * this.chapterCount;
 		}
-		if (this.mode === 'free') this.controls.update(dt);
+		if (this.mode === 'free' && this.drone) this.applyDrone(time);
+		else if (this.mode === 'free') this.controls.update(dt);
 		else if (this.fixedPose) this.applyFixedPose(this.fixedPose);
 		else if (!this.returning) this.applyPose(this.t);
 		this.applyShake(time);
@@ -76,6 +90,7 @@ export class TourDirector {
 
 	exitFree(): void {
 		if (this.mode === 'tour') return;
+		this.drone = null;
 		this.mode = 'tour';
 		this.controls.enabled = false;
 		sampleTrack(this.keys, this.t, this.pose);
@@ -100,9 +115,24 @@ export class TourDirector {
 	}
 
 	dispose(): void {
+		this.controls.removeEventListener('start', this.stopDrone);
 		this.shaking?.kill();
 		this.returning?.kill();
 		this.lenis.destroy();
+	}
+
+	private applyDrone(time: number): void {
+		if (!this.drone) return;
+		this.drone.start ??= time;
+		const seconds = this.drone.still ? 0 : (time - this.drone.start) / 1000;
+		dronePose(seconds, this.drone.center, this.pose);
+		this.camera.position.fromArray(this.pose.position);
+		this.controls.target.fromArray(this.pose.target);
+		this.camera.lookAt(this.controls.target);
+		if (Math.abs(this.camera.fov - this.pose.fov) > 1e-3) {
+			this.camera.fov = this.pose.fov;
+			this.camera.updateProjectionMatrix();
+		}
 	}
 
 	private applyFixedPose([x, y, z, tx, ty, tz, fov]: readonly number[]): void {
@@ -156,10 +186,11 @@ export class TourDirector {
 		if (
 			Math.abs(this.t - this.published.t) < 0.002 &&
 			chapter === this.published.chapter &&
-			this.mode === this.published.mode
+			this.mode === this.published.mode &&
+			!!this.drone === this.published.drone
 		)
 			return;
-		this.published = { t: this.t, chapter, mode: this.mode };
-		tourState.set({ t: this.t, chapter, mode: this.mode });
+		this.published = { t: this.t, chapter, mode: this.mode, drone: !!this.drone };
+		tourState.set({ t: this.t, chapter, mode: this.mode, drone: !!this.drone });
 	}
 }

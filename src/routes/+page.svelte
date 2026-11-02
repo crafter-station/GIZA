@@ -1,5 +1,5 @@
 <script lang="ts">
-import { onMount } from 'svelte';
+import { onMount, untrack } from 'svelte';
 import { parseFlags } from '#lib/app/flags.ts';
 import { engineState, tourState } from '#lib/app/state.ts';
 import { KHAFRE, KHUFU, MENKAURE } from '#lib/data/pyramids.ts';
@@ -9,6 +9,7 @@ import BlockPanel from '#lib/ui/BlockPanel.svelte';
 import Inspector from '#lib/ui/Inspector.svelte';
 import LightingControls from '#lib/ui/LightingControls.svelte';
 import Loader from '#lib/ui/Loader.svelte';
+import ScrollHint from '#lib/ui/ScrollHint.svelte';
 import SoundToggle from '#lib/ui/SoundToggle.svelte';
 import TourChapters from '#lib/ui/TourChapters.svelte';
 import TourNav from '#lib/ui/TourNav.svelte';
@@ -31,7 +32,21 @@ const pyramids = [
 
 const ready = $derived(engine !== null && $engineState.status === 'ready');
 const chapter = $derived(CHAPTERS[$tourState.chapter]);
-const showBlockPanel = $derived($tourState.mode === 'free' || chapter.blockActions);
+const mode = $derived($tourState.mode);
+const showBlockPanel = $derived(mode === 'free' ? !$tourState.drone : chapter.blockActions);
+const SCROLL_HINT_SPAN = 0.15;
+let tourEntryT = $state<number | null>(null);
+const showScrollHint = $derived(
+	ready &&
+		mode === 'tour' &&
+		tourEntryT !== null &&
+		Math.abs($tourState.t - tourEntryT) < SCROLL_HINT_SPAN &&
+		$tourState.chapter < CHAPTERS.length - 1
+);
+
+$effect(() => {
+	tourEntryT = mode === 'tour' ? untrack(() => $tourState.t) : null;
+});
 
 $effect(() => {
 	if (!ready || $tourState.mode === 'free') return;
@@ -67,7 +82,9 @@ onMount(() => {
 			}
 			engine = instance;
 			const linked = CHAPTERS.findIndex((item) => `#${item.id}` === location.hash);
+			const flags = parseFlags(location.search);
 			if (linked > 0) instance.goToChapter(linked);
+			else if (flags.t === null && flags.cam === null) instance.startDrone();
 		})
 		.catch((error: unknown) => {
 			document.documentElement.dataset.engine = 'error';
@@ -183,6 +200,9 @@ onMount(() => {
 		<Inspector block={$engineState.inspecting} onclose={() => engine?.inspect(null)} />
 	{/if}
 	<TourNav tour={$tourState} disabled={!ready} ongo={goTo} ontogglefree={toggleFree} />
+	{#if showScrollHint}
+		<ScrollHint />
+	{/if}
 	{#if $engineState.status === 'loading'}
 		<Loader progress={$engineState.progress} step={$engineState.step} />
 	{/if}
