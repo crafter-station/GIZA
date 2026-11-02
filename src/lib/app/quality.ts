@@ -10,13 +10,52 @@ export interface TierSettings {
 	rockCount: number;
 	pyramidDetail: number;
 	physicsBodies: number;
+	dustMotes: number;
+	jointDust: number;
+	torchLights: number;
 }
 
 export const TIER_SETTINGS: Record<Tier, TierSettings> = {
-	low: { blockTarget: 12_000, maxPixelRatio: 1, rockCount: 350, pyramidDetail: 0.25, physicsBodies: 400 },
-	medium: { blockTarget: 30_000, maxPixelRatio: 1.25, rockCount: 900, pyramidDetail: 0.5, physicsBodies: 1000 },
-	high: { blockTarget: 70_000, maxPixelRatio: 1.5, rockCount: 1600, pyramidDetail: 0.8, physicsBodies: 2000 },
-	ultra: { blockTarget: 140_000, maxPixelRatio: 2, rockCount: 2400, pyramidDetail: 1, physicsBodies: 3000 }
+	low: {
+		blockTarget: 12_000,
+		maxPixelRatio: 1,
+		rockCount: 350,
+		pyramidDetail: 0.25,
+		physicsBodies: 400,
+		dustMotes: 1500,
+		jointDust: 1500,
+		torchLights: 0
+	},
+	medium: {
+		blockTarget: 30_000,
+		maxPixelRatio: 1.25,
+		rockCount: 900,
+		pyramidDetail: 0.5,
+		physicsBodies: 1000,
+		dustMotes: 4000,
+		jointDust: 4000,
+		torchLights: 2
+	},
+	high: {
+		blockTarget: 70_000,
+		maxPixelRatio: 1.5,
+		rockCount: 1600,
+		pyramidDetail: 0.8,
+		physicsBodies: 2000,
+		dustMotes: 8000,
+		jointDust: 8000,
+		torchLights: 4
+	},
+	ultra: {
+		blockTarget: 140_000,
+		maxPixelRatio: 2,
+		rockCount: 2400,
+		pyramidDetail: 1,
+		physicsBodies: 3000,
+		dustMotes: 12000,
+		jointDust: 12000,
+		torchLights: 4
+	}
 };
 
 export function isTier(value: string | null): value is Tier {

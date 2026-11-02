@@ -20,6 +20,7 @@ import {
 	sin,
 	smoothstep,
 	texture,
+	time,
 	uniform,
 	vec2,
 	vec3,
@@ -37,6 +38,7 @@ import {
 	Vector4
 } from 'three/webgpu';
 import type { TerrainHeightmapMeta } from '../data/terrain.ts';
+import { DRIFT_SPEED, GUST_PERIOD_SECONDS, WIND_DIRECTION_XZ } from '../world/atmosphere/wind.ts';
 import { duneHeightNode, PLATFORM_DAMPING } from '../world/terrain/relief.ts';
 import type { ShapedTerrain } from '../world/terrain/shape.ts';
 import { SKIRT_DEPTH } from '../world/terrain/tiles.ts';
@@ -49,8 +51,9 @@ export const GROUND_PALETTE = {
 	bedrockDark: 0xa98b62
 } as const;
 
-const WIND_DIRECTION = vec2(0.34, 0.94).normalize();
-const WIND_ACROSS = vec2(-0.94, 0.34);
+const WIND_DIRECTION = vec2(...WIND_DIRECTION_XZ);
+const WIND_ACROSS = vec2(-WIND_DIRECTION_XZ[1], WIND_DIRECTION_XZ[0]);
+const DRIFT_FADE_FAR = 900;
 const RIPPLE_WAVELENGTH = 0.9;
 const NORMAL_STEP = 1.5;
 const HORIZON_BLEND = 2500;
@@ -136,7 +139,19 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 	const sand = mix(color(GROUND_PALETTE.sandDark), color(GROUND_PALETTE.sandLight), saturate(macro.mul(0.5).add(0.5)))
 		.mul(streaks.mul(0.05).add(1))
 		.toVar();
-	const packed = mix(sand, color(GROUND_PALETTE.gravel), platform.mul(0.55));
+	const downwind = dot(xz, WIND_DIRECTION).sub(time.mul(DRIFT_SPEED));
+	const gust = sin(time.mul((Math.PI * 2) / GUST_PERIOD_SECONDS))
+		.mul(0.5)
+		.add(0.5);
+	const drift = smoothstep(
+		0.25,
+		0.75,
+		mx_noise_float(vec3(downwind.div(9), dot(xz, WIND_ACROSS).div(2.2), time.mul(0.15)))
+	)
+		.mul(oneMinus(smoothstep(80, DRIFT_FADE_FAR, distance(cameraPosition, positionWorld))))
+		.mul(oneMinus(rock), oneMinus(platform), gust.mul(0.6).add(0.4));
+	const drifting = sand.add(color(GROUND_PALETTE.sandLight).mul(drift.mul(0.09)));
+	const packed = mix(drifting, color(GROUND_PALETTE.gravel), platform.mul(0.55));
 	const bedrock = mix(
 		color(GROUND_PALETTE.bedrockDark),
 		color(GROUND_PALETTE.bedrockLight),

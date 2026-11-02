@@ -4,6 +4,9 @@ import { ao } from 'three/addons/tsl/display/GTAONode.js';
 import { traa } from 'three/addons/tsl/display/TRAANode.js';
 import {
 	builtinAOContext,
+	cameraFar,
+	cameraNear,
+	cos,
 	dot,
 	float,
 	hash,
@@ -12,10 +15,15 @@ import {
 	normalView,
 	output,
 	pass,
+	perspectiveDepthToViewZ,
 	renderOutput,
 	screenCoordinate,
 	screenUV,
+	sin,
+	smoothstep,
+	time,
 	uniform,
+	vec2,
 	vec3,
 	vec4,
 	velocity
@@ -34,6 +42,10 @@ import {
 import type { Tier } from '../app/quality.ts';
 import type { Environment } from '../world/atmosphere/environment.ts';
 
+const SHIMMER_NEAR = 700;
+const SHIMMER_FAR = 3500;
+const SHIMMER_AMPLITUDE = 0.0011;
+
 export class AtmospherePipeline {
 	private readonly pipeline: RenderPipeline;
 	private readonly scenePass;
@@ -46,6 +58,7 @@ export class AtmospherePipeline {
 	private readonly warmth = uniform(0);
 	private readonly saturation = uniform(1);
 	private readonly rayStrength = uniform(0);
+	private readonly heat = uniform(0);
 	private readonly rayColor = uniform(new Vector3(1, 0.85, 0.7));
 	private lastT = -1;
 	private width = 0;
@@ -76,8 +89,19 @@ export class AtmospherePipeline {
 			this.scenePass.contextNode = builtinAOContext(this.ambientOcclusion.getTextureNode().sample(screenUV).r);
 		}
 		if (temporal) this.scenePass.setMRT(mrt({ output, velocity }));
-		const beauty = this.scenePass.getTextureNode();
 		const depth = this.scenePass.getTextureNode('depth');
+		const distance = perspectiveDepthToViewZ(depth.sample(screenUV).r, cameraNear, cameraFar).negate();
+		const shimmer = smoothstep(SHIMMER_NEAR, SHIMMER_FAR, distance).mul(this.heat, SHIMMER_AMPLITUDE);
+		const wave = vec2(
+			sin(
+				screenUV.y
+					.mul(820)
+					.add(time.mul(5.3))
+					.add(sin(screenUV.x.mul(37).add(time)).mul(2))
+			),
+			cos(screenUV.y.mul(610).sub(time.mul(4.1))).mul(0.5)
+		);
+		const beauty = this.scenePass.getTextureNode().sample(screenUV.add(wave.mul(shimmer)));
 		this.rays = temporal ? godrays(depth, camera, environment.shafts) : null;
 		let hdr: Node<'vec4'> = beauty;
 		if (this.rays) {
@@ -129,6 +153,7 @@ export class AtmospherePipeline {
 		this.warmth.value = look.warmth;
 		this.saturation.value = look.saturation;
 		this.rayStrength.value = look.rayStrength;
+		this.heat.value = look.heat;
 		this.pipeline.render();
 	}
 

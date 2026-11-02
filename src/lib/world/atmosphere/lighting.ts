@@ -30,6 +30,7 @@ export interface LightingLook {
 	saturation: number;
 	rayStrength: number;
 	haze: number;
+	heat: number;
 }
 
 export const LIGHTING_LOOKS: Record<LightingPreset, LightingLook> = {
@@ -49,7 +50,8 @@ export const LIGHTING_LOOKS: Record<LightingPreset, LightingLook> = {
 		warmth: 0.06,
 		saturation: 1.22,
 		rayStrength: 0.12,
-		haze: 0.35
+		haze: 0.35,
+		heat: 0.15
 	},
 	noon: {
 		hour: 10.12,
@@ -67,7 +69,8 @@ export const LIGHTING_LOOKS: Record<LightingPreset, LightingLook> = {
 		warmth: 0,
 		saturation: 1.32,
 		rayStrength: 0.018,
-		haze: 0.5
+		haze: 0.5,
+		heat: 1
 	},
 	sunset: {
 		hour: 15.65,
@@ -85,7 +88,8 @@ export const LIGHTING_LOOKS: Record<LightingPreset, LightingLook> = {
 		warmth: 0.045,
 		saturation: 1.2,
 		rayStrength: 0.1,
-		haze: 0.3
+		haze: 0.3,
+		heat: 0.35
 	},
 	night: {
 		hour: 19,
@@ -103,7 +107,8 @@ export const LIGHTING_LOOKS: Record<LightingPreset, LightingLook> = {
 		warmth: -0.025,
 		saturation: 0.72,
 		rayStrength: 0,
-		haze: 0
+		haze: 0,
+		heat: 0
 	}
 };
 
