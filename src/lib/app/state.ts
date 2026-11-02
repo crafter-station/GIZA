@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import type { RampId } from '../data/construction.ts';
 import type { Backend, Tier } from './quality.ts';
 
 export interface BlockInfo {
@@ -22,6 +23,9 @@ export interface EngineState {
 	selected: BlockInfo | null;
 	inspecting: BlockInfo | null;
 	xray: number | null;
+	build: number | null;
+	ramp: RampId | null;
+	origins: boolean;
 	forceField: boolean;
 	collapsed: boolean;
 	error: string | null;
@@ -40,6 +44,9 @@ export const INITIAL_ENGINE_STATE: EngineState = {
 	selected: null,
 	inspecting: null,
 	xray: null,
+	build: null,
+	ramp: 'spiral',
+	origins: false,
 	forceField: false,
 	collapsed: false,
 	error: null

@@ -2,7 +2,9 @@
 import { Button, Slider, Toggle } from 'bits-ui';
 import type { EngineState } from '../app/state.ts';
 import { ROYAL_NAMES } from '../content/hieroglyphs.ts';
+import type { RampId } from '../data/construction.ts';
 import { KHUFU } from '../data/pyramids.ts';
+import ConstructionTools from './ConstructionTools.svelte';
 import Cartouche from './egypt/Cartouche.svelte';
 
 interface Props {
@@ -13,9 +15,23 @@ interface Props {
 	onforcefield: (enabled: boolean) => void;
 	oninspect: (index: number | null) => void;
 	oncollapse: () => void;
+	onbuild: (progress: number | null) => void;
+	onramp: (ramp: RampId) => void;
+	onorigins: (enabled: boolean) => void;
 }
 
-let { state, ondeconstruct, onreassemble, onxray, onforcefield, oninspect, oncollapse }: Props = $props();
+let {
+	state,
+	ondeconstruct,
+	onreassemble,
+	onxray,
+	onforcefield,
+	oninspect,
+	oncollapse,
+	onbuild,
+	onramp,
+	onorigins
+}: Props = $props();
 const COURSES = 201;
 const xrayValue = $derived(state.xray ?? COURSES);
 const block = $derived(state.selected ?? state.hovered);
@@ -163,6 +179,8 @@ const name = ROYAL_NAMES.khufu.value;
 				<p class="text-[11px] text-ink/65">Drag across the floating blocks to push them aside.</p>
 			{/if}
 		</section>
+
+		<ConstructionTools {state} {onbuild} {onramp} {onorigins} />
 
 		<dl class="mt-3 flex gap-2 text-[10px] tracking-wider text-ink/60 uppercase" data-testid="engine-info">
 			<div class="rounded-full border border-ink/15 px-2 py-0.5">

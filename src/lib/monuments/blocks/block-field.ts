@@ -13,6 +13,7 @@ import {
 	int,
 	length,
 	max,
+	min,
 	mix,
 	normalize,
 	normalLocal,
@@ -58,6 +59,7 @@ export const ANTICIPATION_SECONDS = 0.6;
 const FIELD_RADIUS = 14;
 const FIELD_FORCE = 260;
 const NO_XRAY = 1e4;
+const XRAY_SECTION_EAST = -7;
 export const MAX_PHYSICS_BODIES = 3000;
 const HIGHLIGHT = 0xffe2a8;
 
@@ -77,6 +79,8 @@ export class BlockField {
 	private readonly modeTime = uniform(1e4);
 	private readonly deconstructing = uniform(0);
 	readonly xrayCourse = uniform(NO_XRAY);
+	readonly buildCourse = uniform(NO_XRAY);
+	readonly section = uniform(0);
 	readonly fieldOrigin = uniform(new Vector3());
 	readonly fieldDirection = uniform(new Vector3(0, 0, -1));
 	readonly fieldStrength = uniform(0);
@@ -167,7 +171,11 @@ export class BlockField {
 
 		const transformed = Fn(() => {
 			const rotation = rotationBuffer.element(instanceIndex);
-			const visible = select(homeBuffer.element(instanceIndex).w.lessThan(this.xrayCourse), float(1), float(0));
+			const home = homeBuffer.element(instanceIndex);
+			const cutting = this.xrayCourse.lessThan(NO_XRAY).or(this.section.greaterThan(0.5));
+			const sectioned = cutting.and(home.x.greaterThan(XRAY_SECTION_EAST));
+			const standing = home.w.lessThan(min(this.xrayCourse, this.buildCourse));
+			const visible = select(standing.and(sectioned.not()), float(1), float(0));
 			const size = sizeBuffer.element(instanceIndex).xyz.mul(visible);
 			normalLocal.assign(rotateByQuaternion(normalize(normalLocal.div(size.max(0.001))), rotation));
 			return rotateByQuaternion(positionLocal.mul(size), rotation).add(positionBuffer.element(instanceIndex).xyz);
@@ -247,6 +255,18 @@ export class BlockField {
 
 	get xrayActive(): boolean {
 		return this.xrayCourse.value < NO_XRAY;
+	}
+
+	get building(): boolean {
+		return this.buildCourse.value < NO_XRAY;
+	}
+
+	get sectioned(): boolean {
+		return this.xrayActive || this.section.value === 1;
+	}
+
+	setBuild(course: number | null): void {
+		this.buildCourse.value = course === null ? NO_XRAY : course;
 	}
 
 	setXray(course: number | null): void {

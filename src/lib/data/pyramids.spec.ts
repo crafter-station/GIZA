@@ -1,7 +1,8 @@
 import { getPosition, getTimes } from 'suncalc';
 import { describe, expect, it } from 'vitest';
 import { GIZA_ORIGIN } from './geo.ts';
-import { DERIVED, KHAFRE, KHUFU, MENKAURE } from './pyramids.ts';
+import { SPHINX_PLACEMENT } from './layout.ts';
+import { DERIVED, KHAFRE, KHUFU, MENKAURE, SPHINX } from './pyramids.ts';
 
 describe('pyramid figures', () => {
 	it('keeps height consistent with base and slope (tan(slope) · base / 2)', () => {
@@ -29,5 +30,13 @@ describe('pyramid figures', () => {
 	it('derives the building pace from the block estimate', () => {
 		const { blocks, years, perDay } = DERIVED.blocksPerDay.value;
 		expect(Math.round(blocks / (years * 365))).toBe(perDay);
+	});
+
+	it('scales the rendered Sphinx without changing its documented dimensions', () => {
+		expect(SPHINX_PLACEMENT.renderScale).toBeGreaterThan(1);
+		expect(SPHINX_PLACEMENT.renderedLength).toBe(SPHINX.size.value.length * SPHINX_PLACEMENT.renderScale);
+		expect(SPHINX_PLACEMENT.renderedHeight).toBe(SPHINX.size.value.height * SPHINX_PLACEMENT.renderScale);
+		expect(SPHINX_PLACEMENT.renderedWidth).toBe(SPHINX.size.value.width * SPHINX_PLACEMENT.renderScale);
+		expect(SPHINX_PLACEMENT.height).toBe(SPHINX.size.value.height);
 	});
 });

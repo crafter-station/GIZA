@@ -3,7 +3,12 @@ import { TIER_SETTINGS, TIERS } from '../../app/quality.ts';
 import { PYRAMIDS, SPHINX_PLACEMENT } from '../../data/layout.ts';
 import { insidePyramid, ROCK_VARIANTS, RUBBLE_BAND, type ScatterRequest, scatterRocks } from './rock-scatter.ts';
 
-const sphinxZone = { x: SPHINX_PLACEMENT.x, z: SPHINX_PLACEMENT.z, halfX: 60, halfZ: 35 };
+const sphinxZone = {
+	x: SPHINX_PLACEMENT.x,
+	z: SPHINX_PLACEMENT.z,
+	halfX: SPHINX_PLACEMENT.renderedLength / 2 + 15,
+	halfZ: SPHINX_PLACEMENT.renderedWidth / 2 + 15
+};
 const request = (count: number): ScatterRequest => ({
 	count,
 	seed: 2589,

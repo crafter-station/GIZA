@@ -7,6 +7,7 @@ export interface SphinxPlacement {
 	z: number;
 	ground: number;
 	height: number;
+	renderScale: number;
 }
 
 interface ModelSurvey {
@@ -63,7 +64,7 @@ export async function loadSphinx(url: string, placement: SphinxPlacement, materi
 	const oriented = new Group();
 	oriented.add(model);
 	oriented.rotation.y = survey.headZ > survey.centerZ ? Math.PI / 2 : -Math.PI / 2;
-	oriented.scale.setScalar(placement.height / (survey.top - survey.floor));
+	oriented.scale.setScalar((placement.height * placement.renderScale) / (survey.top - survey.floor));
 
 	const root = new Group();
 	root.name = 'sphinx';

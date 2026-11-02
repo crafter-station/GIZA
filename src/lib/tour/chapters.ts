@@ -123,7 +123,7 @@ export const CHAPTERS: readonly Chapter[] = [
 		blockActions: false,
 		shots: [
 			{ at: 0.2, position: [760, 90, 180], target: [-150, 70, 150], fov: 42 },
-			{ at: 0.8, position: [680, 80, 60], target: [-150, 70, 150], fov: 42 }
+			{ at: 0.8, position: [1250, 220, 180], target: [-150, 50, 150], fov: 42 }
 		]
 	},
 	{

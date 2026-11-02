@@ -61,9 +61,9 @@ describe('tour camera path', () => {
 				if (inside) expect(y - ground, `structure at t=${t.toFixed(3)}`).toBeGreaterThan(block.height + clearance);
 			}
 			const insideSphinx =
-				Math.abs(x - SPHINX_PLACEMENT.x) < SPHINX_PLACEMENT.length / 2 + clearance &&
-				Math.abs(z - SPHINX_PLACEMENT.z) < SPHINX_PLACEMENT.width / 2 + clearance;
-			if (insideSphinx) expect(y - ground).toBeGreaterThan(SPHINX_PLACEMENT.height + clearance);
+				Math.abs(x - SPHINX_PLACEMENT.x) < SPHINX_PLACEMENT.renderedLength / 2 + clearance &&
+				Math.abs(z - SPHINX_PLACEMENT.z) < SPHINX_PLACEMENT.renderedWidth / 2 + clearance;
+			if (insideSphinx) expect(y - ground).toBeGreaterThan(SPHINX_PLACEMENT.renderedHeight + clearance);
 		}
 	});
 

@@ -15,9 +15,11 @@ import {
 import type { Flags } from '../app/flags.ts';
 import { type Backend, clampTier, initialTier, TIER_SETTINGS, type Tier, tierAfterBenchmark } from '../app/quality.ts';
 import { type EngineState, engineState } from '../app/state.ts';
+import { courseAtProgress, cumulativeCourseVolume, RAMP_DRAWING, type RampId } from '../data/construction.ts';
 import { KHUFU_SURVIVING_COURSES_M } from '../data/khufu-courses.ts';
 import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
 import { DERIVED, KHUFU } from '../data/pyramids.ts';
+import { createInteriorMaterials } from '../materials/interior.ts';
 import { createLimestoneMaterial } from '../materials/limestone.ts';
 import { createMasonryMaterial } from '../materials/masonry.ts';
 import { createBasaltMaterial, createGraniteMaterial, createPitMaterial } from '../materials/ruins.ts';
@@ -25,6 +27,9 @@ import { ANTICIPATION_SECONDS, BlockField, MAX_PHYSICS_BODIES, NO_BLOCK } from '
 import type { BlockLayout, BlockLayoutRequest } from '../monuments/blocks/layout.ts';
 import { createComplex, disposeComplex } from '../monuments/complex/complex.ts';
 import { buildComplexLayout, complexExclusions } from '../monuments/complex/layout.ts';
+import { createCasingGhost, disposeCasingGhost } from '../monuments/construction/casing.ts';
+import { RampModel } from '../monuments/construction/ramps.ts';
+import { createKhufuInterior } from '../monuments/interiors/khufu-interior.ts';
 import { pyramidDesigns } from '../monuments/pyramid/designs.ts';
 import {
 	createPyramidObject,
@@ -38,11 +43,14 @@ import { CHAPTERS, resolveCameraKeys } from '../tour/chapters.ts';
 import { TourDirector } from '../tour/director.ts';
 import { Environment } from '../world/atmosphere/environment.ts';
 import type { LightingMode } from '../world/atmosphere/lighting.ts';
+import { AncientReconstruction } from '../world/era/reconstruction.ts';
+import { tourEra } from '../world/era/timeline.ts';
 import { scatterRocks } from '../world/props/rock-scatter.ts';
 import { createRockField, disposeRockField } from '../world/props/rocks.ts';
 import { createGroundSampler } from '../world/terrain/relief.ts';
 import { flattenFootprints } from '../world/terrain/shape.ts';
 import { loadHeightmap, Terrain } from '../world/terrain/terrain.ts';
+import { ValleyLandscape } from '../world/valley/landscape.ts';
 import { FrameStats } from './frame-stats.ts';
 import { GpuPicker } from './picking.ts';
 import { AtmospherePipeline } from './render-pipeline.ts';
@@ -56,6 +64,9 @@ export interface Engine {
 	exitFree(): void;
 	setLighting(mode: LightingMode): void;
 	setXray(course: number | null): void;
+	setBuild(progress: number | null): void;
+	setRamp(ramp: RampId | null): void;
+	setOrigins(enabled: boolean): void;
 	setForceField(enabled: boolean): void;
 	inspect(index: number | null): void;
 	collapse(): Promise<void>;
@@ -189,7 +200,12 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			seed: 2589,
 			pyramids: PYRAMIDS,
 			exclusions: [
-				{ x: SPHINX_PLACEMENT.x, z: SPHINX_PLACEMENT.z, halfX: 60, halfZ: 35 },
+				{
+					x: SPHINX_PLACEMENT.x,
+					z: SPHINX_PLACEMENT.z,
+					halfX: SPHINX_PLACEMENT.renderedLength / 2 + 15,
+					halfZ: SPHINX_PLACEMENT.renderedWidth / 2 + 15
+				},
 				...complexExclusions(complexLayout)
 			],
 			field: { x: -250, z: 450, radius: 1400 },
@@ -207,6 +223,19 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	};
 	const complex = createComplex(complexLayout, groundAt, ruinMaterials);
 	scene.add(complex);
+	const valley = new ValleyLandscape(groundAt, tier);
+	const reconstruction = new AncientReconstruction(PYRAMIDS, platformOf, groundAt);
+	scene.add(valley.group, reconstruction.group);
+	let renderedEra = -1;
+	const updateEra = () => {
+		const amount = tourEra(director.t);
+		if (Math.abs(amount - renderedEra) < 0.001) return;
+		if (Math.abs(amount - renderedEra) > 0.25) pipeline.resetHistory();
+		valley.setEra(amount);
+		reconstruction.setEra(amount);
+		renderedEra = amount;
+		document.documentElement.dataset.era = String(Math.round(amount * 100));
+	};
 	const environment = new Environment(scene, renderer, camera, tier);
 	environment.setMode(flags.lighting);
 	document.documentElement.dataset.lighting = flags.lighting;
@@ -248,6 +277,11 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		patch({ progress: progressFrom + 0.2, step: 'Uploading blocks to the GPU' });
 		await yieldToMain();
 		const wasDeconstructed = field?.deconstructed ?? false;
+		const cuts = field && {
+			xray: field.xrayCourse.value,
+			build: field.buildCourse.value,
+			section: field.section.value
+		};
 		if (field) {
 			scene.remove(field.mesh);
 			field.dispose();
@@ -257,6 +291,11 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		field.mesh.receiveShadow = true;
 		field.placeAt(khufuVolume.position.x, khufuVolume.position.y, khufuVolume.position.z);
 		field.setDeconstructed(wasDeconstructed);
+		if (cuts) {
+			field.xrayCourse.value = cuts.xray;
+			field.buildCourse.value = cuts.build;
+			field.section.value = cuts.section;
+		}
 		scene.add(field.mesh);
 		picker.setTarget(field.pickMesh);
 		resize();
@@ -280,6 +319,47 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	let lastPublished = 0;
 
 	const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+	const interiorMaterials = createInteriorMaterials();
+	const interior = createKhufuInterior(interiorMaterials);
+	interior.position.copy(khufuVolume.position);
+	interior.visible = false;
+	scene.add(interior);
+	const courseTops: number[] = [];
+	KHUFU_SURVIVING_COURSES_M.reduce((sum, value) => {
+		courseTops.push(sum + value);
+		return sum + value;
+	}, 0);
+	const heightOfCourse = (course: number) => {
+		const whole = Math.floor(course);
+		if (whole >= courseTops.length) return Infinity;
+		const below = whole === 0 ? 0 : courseTops[whole - 1];
+		return below + (courseTops[whole] - below) * (course - whole);
+	};
+	const courseVolumes = cumulativeCourseVolume(
+		KHUFU_SURVIVING_COURSES_M,
+		KHUFU_SHAPE.baseSide,
+		KHUFU_SHAPE.originalHeight
+	);
+	const ramps = new RampModel({ ...KHUFU_SHAPE, ...RAMP_DRAWING.value });
+	ramps.mesh.position.copy(khufuVolume.position);
+	scene.add(ramps.mesh);
+	const casing = createCasingGhost(KHUFU_SHAPE.baseSide, KHUFU_SHAPE.originalHeight);
+	casing.position.copy(khufuVolume.position);
+	scene.add(casing);
+	let ramp: RampId | null = 'spiral';
+	let buildProgress: number | null = null;
+	const updateRamps = () => {
+		const course = buildProgress === null ? null : courseAtProgress(courseVolumes, buildProgress);
+		field?.setBuild(course);
+		ramps.update(course === null ? null : ramp, course === null ? 0 : heightOfCourse(course));
+	};
+	const updateInterior = (showBlocks: boolean) => {
+		const open = showBlocks && !!field && (field.deconstructed || field.sectioned);
+		interior.visible = open;
+		if (!open || !field) return;
+		const cut = heightOfCourse(Math.min(Math.round(field.xrayCourse.value), field.buildCourse.value));
+		for (const piece of interior.children) piece.visible = piece.position.y - piece.scale.y / 2 < cut;
+	};
 	const scale = new Mesh(new CapsuleGeometry(0.22, 1.31, 4, 12), new MeshStandardNodeMaterial({ color: 0x3b2f25 }));
 	scale.name = 'human-scale';
 	scale.visible = false;
@@ -296,7 +376,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		patch({ collapsed: false });
 	};
 	let inspecting: number | null = null;
-	const blocksVisible = () => !!field && (benchmarking || !field.settled || field.xrayActive);
+	const blocksVisible = () => !!field && (benchmarking || !field.settled || field.sectioned || field.building);
 	const updateInspector = () => {
 		if (!field || inspecting === null) return;
 		camera.getWorldDirection(forward);
@@ -319,11 +399,13 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		last = Math.max(last, time);
 		director.update(time, dt);
 		terrain.update(camera);
+		updateEra();
 		gsap.updateRoot(time / 1000);
 		const showBlocks = blocksVisible();
 		khufuVolume.visible = !showBlocks;
 		if (field) {
 			field.mesh.visible = showBlocks;
+			updateInterior(showBlocks);
 			if (showBlocks) {
 				updateInspector();
 				field.step(renderer, dt);
@@ -425,7 +507,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			x: SPHINX_PLACEMENT.x,
 			z: SPHINX_PLACEMENT.z,
 			ground: groundAt(SPHINX_PLACEMENT.x, SPHINX_PLACEMENT.z),
-			height: SPHINX_PLACEMENT.height
+			height: SPHINX_PLACEMENT.height,
+			renderScale: SPHINX_PLACEMENT.renderScale
 		},
 		stone
 	)
@@ -493,6 +576,21 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		setXray: (course) => {
 			field?.setXray(course);
 			patch({ xray: course });
+		},
+		setBuild: (progress) => {
+			buildProgress = progress;
+			updateRamps();
+			patch({ build: progress });
+		},
+		setRamp: (next) => {
+			ramp = next;
+			updateRamps();
+			patch({ ramp: next });
+		},
+		setOrigins: (enabled) => {
+			if (field) field.section.value = enabled ? 1 : 0;
+			casing.visible = enabled;
+			patch({ origins: enabled });
 		},
 		setForceField: (enabled) => {
 			forceField = enabled;
@@ -576,6 +674,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			rockMaterial.dispose();
 			disposeRockField(rocks);
 			disposeComplex(complex);
+			valley.dispose();
+			reconstruction.dispose();
 			for (const material of Object.values(ruinMaterials)) material.dispose();
 			for (const object of pyramidObjects) {
 				object.traverse((child) => {
@@ -583,6 +683,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				});
 			}
 			masonry.dispose();
+			ramps.dispose();
+			disposeCasingGhost(casing);
+			(interior.children[0] as Mesh | undefined)?.geometry.dispose();
+			for (const material of Object.values(interiorMaterials)) material.dispose();
 			scale.geometry.dispose();
 			(scale.material as MeshStandardNodeMaterial).dispose();
 			stone.dispose();

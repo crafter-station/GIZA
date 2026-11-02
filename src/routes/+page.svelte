@@ -171,6 +171,9 @@ onMount(() => {
 			onforcefield={(enabled) => engine?.setForceField(enabled)}
 			oninspect={(index) => engine?.inspect(index)}
 			oncollapse={() => void engine?.collapse()}
+			onbuild={(progress) => engine?.setBuild(progress)}
+			onramp={(ramp) => engine?.setRamp(ramp)}
+			onorigins={(enabled) => engine?.setOrigins(enabled)}
 		/>
 	{/if}
 	{#if $engineState.inspecting}

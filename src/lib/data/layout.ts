@@ -72,11 +72,17 @@ export const RECONSTRUCTED_HEIGHTS = new Set(['g1a', 'g1b', 'g1c', 'g3b', 'g3c']
 
 export const ALL_PYRAMIDS: readonly PyramidVolume[] = [...PYRAMIDS, ...QUEEN_PYRAMIDS];
 
+export const SPHINX_RENDER_SCALE = 1.3;
+
 export const SPHINX_PLACEMENT = {
 	...SPHINX.position,
 	length: SPHINX.size.value.length,
 	height: SPHINX.size.value.height,
-	width: SPHINX.size.value.width
+	width: SPHINX.size.value.width,
+	renderScale: SPHINX_RENDER_SCALE,
+	renderedLength: SPHINX.size.value.length * SPHINX_RENDER_SCALE,
+	renderedHeight: SPHINX.size.value.height * SPHINX_RENDER_SCALE,
+	renderedWidth: SPHINX.size.value.width * SPHINX_RENDER_SCALE
 };
 
 export const PLATFORM_MARGIN = 25;
