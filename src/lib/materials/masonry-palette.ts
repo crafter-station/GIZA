@@ -1,6 +1,7 @@
 export const MASONRY_PALETTE = {
-	coreLight: 0xd6bf94,
-	coreDark: 0xae9168,
+	coreLight: 0xcdb284,
+	coreDark: 0x94754f,
+	patina: 0xb98d5c,
 	tura: 0xe9dfc8,
 	turaStain: 0xc8b48f,
 	granite: 0xb07563,

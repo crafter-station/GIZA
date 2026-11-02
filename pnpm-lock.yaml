@@ -51,6 +51,9 @@ importers:
       '@gltf-transform/functions':
         specifier: 4.5.1
         version: 4.5.1(@types/node@24.19.2)
+      '@iconify-icons/akar-icons':
+        specifier: 2.0.0
+        version: 2.0.0
       '@iconify-icons/lucide':
         specifier: 2.0.26
         version: 2.0.26
@@ -259,6 +262,9 @@ packages:
 
   '@gltf-transform/functions@4.5.1':
     resolution: {integrity: sha512-rfm4nQY2DJ+ip1e15xp7YfQwhRno3kPLcGw4EZiRk1dVwMV3cdFMcF08glYcO/+oLyYkUEs3xXMJYXa0cPgcTg==}
+
+  '@iconify-icons/akar-icons@2.0.0':
+    resolution: {integrity: sha512-/6st2L1hSQ6jN4TEtc+1YM1SdkICZdBL8tiqFKCW1PWtlqNF/KTxE+m1RfYCV0YLDe9j3Lfs5yjvLSIjbPdiWg==}
 
   '@iconify-icons/andrsrxn@2.0.3':
     resolution: {integrity: sha512-7TUDJ/weeK+3ac6e9yx4ih7M2/evWjGWugxJkBwMyX3ifCDpg6GXjCtE96mxR8TIRm2J8oNqN0Oukia5d1JC4Q==}
@@ -2051,6 +2057,10 @@ snapshots:
       ndarray-pixels: 5.2.0(@types/node@24.19.2)
     transitivePeerDependencies:
       - '@types/node'
+
+  '@iconify-icons/akar-icons@2.0.0':
+    dependencies:
+      '@iconify/types': 2.0.0
 
   '@iconify-icons/andrsrxn@2.0.3':
     dependencies:

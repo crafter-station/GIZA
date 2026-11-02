@@ -28,6 +28,7 @@
 		"@gltf-transform/core": "4.5.1",
 		"@gltf-transform/extensions": "4.5.1",
 		"@gltf-transform/functions": "4.5.1",
+		"@iconify-icons/akar-icons": "2.0.0",
 		"@iconify-icons/lucide": "2.0.26",
 		"@iconify/svelte": "5.2.3",
 		"@playwright/test": "1.64.1",

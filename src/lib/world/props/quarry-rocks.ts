@@ -79,6 +79,7 @@ const MONOLITH = { length: 4.6, width: 3.2, height: 2.4, buried: 0.6 } as const;
 const CHAMFER = 0.07;
 const BEDROCK_JITTER = 6;
 const BEDROCK_GAP = 0.3;
+const CAP_SHARE = 0.5;
 
 export interface BedrockBlock {
 	x: number;
@@ -88,6 +89,7 @@ export interface BedrockBlock {
 	height: number;
 	yaw: number;
 	buried: number;
+	cap: { dx: number; dz: number; length: number; width: number; height: number } | null;
 }
 
 export function quarryBedrock(seed: number): BedrockBlock[] {
@@ -106,11 +108,21 @@ export function quarryBedrock(seed: number): BedrockBlock[] {
 				width: Math.min(span(BEDROCK_FOOTPRINT), BEDROCK_PITCH - 3),
 				height: span(BEDROCK_HEIGHT),
 				yaw: (next() - 0.5) * 0.12,
-				buried: BURIED_DEPTH
+				buried: BURIED_DEPTH,
+				cap: null
 			});
+			const block = blocks[blocks.length - 1];
+			if (next() < CAP_SHARE)
+				block.cap = {
+					dx: (next() - 0.5) * block.length * 0.35,
+					dz: (next() - 0.5) * block.width * 0.35,
+					length: block.length * (0.45 + next() * 0.25),
+					width: block.width * (0.5 + next() * 0.3),
+					height: 0.8 + next() * 1.6
+				};
 		}
 	}
-	blocks.push({ x: monolith.x, z: monolith.z, ...MONOLITH, yaw: 0.02 });
+	blocks.push({ x: monolith.x, z: monolith.z, ...MONOLITH, yaw: 0.02, cap: null });
 	return blocks;
 }
 
@@ -119,14 +131,16 @@ export function createBedrockBlocks(
 	groundAt: (x: number, z: number) => number,
 	material: Material
 ): InstancedMesh {
-	const mesh = new InstancedMesh(createChamferedBoxGeometry(CHAMFER), material, blocks.length);
+	const count = blocks.reduce((total, block) => total + (block.cap ? 2 : 1), 0);
+	const mesh = new InstancedMesh(createChamferedBoxGeometry(CHAMFER), material, count);
+	let index = 0;
 	mesh.name = 'quarry-bedrock';
 	const matrix = new Matrix4();
 	const rotation = new Quaternion();
 	const position = new Vector3();
 	const scale = new Vector3();
 	const up = new Vector3(0, 1, 0);
-	blocks.forEach((block, i) => {
+	for (const block of blocks) {
 		const corners = [-1, 1].flatMap((sx) =>
 			[-1, 1].map((sz) => groundAt(block.x + (sx * block.length) / 2, block.z + (sz * block.width) / 2))
 		);
@@ -135,8 +149,13 @@ export function createBedrockBlocks(
 		position.set(block.x, (top + bottom) / 2, block.z);
 		rotation.setFromAxisAngle(up, block.yaw);
 		scale.set(block.length, top - bottom, block.width);
-		mesh.setMatrixAt(i, matrix.compose(position, rotation, scale));
-	});
+		mesh.setMatrixAt(index++, matrix.compose(position, rotation, scale));
+		if (!block.cap) continue;
+		const offset = new Vector3(block.cap.dx, 0, block.cap.dz).applyQuaternion(rotation);
+		position.set(block.x + offset.x, top + block.cap.height / 2 - 0.2, block.z + offset.z);
+		scale.set(block.cap.length, block.cap.height + 0.4, block.cap.width);
+		mesh.setMatrixAt(index++, matrix.compose(position, rotation, scale));
+	}
 	mesh.instanceMatrix.needsUpdate = true;
 	mesh.computeBoundingSphere();
 	mesh.castShadow = true;

@@ -1,5 +1,6 @@
 export const SITE_NAME = 'Giza';
 export const SITE_ORIGIN = 'https://giza.crafter.run';
+export const SOURCE_REPOSITORY_URL = 'https://github.com/crafter-station/GIZA';
 export const SITE_TITLE = 'Pyramids of Giza in 3D: Deconstruct Khufu, Block by Block';
 export const SITE_DESCRIPTION =
 	'Fly through the pyramids of Giza in 3D and take Khufu apart block by block: 201 measured courses, its chambers, ramp hypotheses and the sky of 2560 BCE.';
@@ -40,6 +41,13 @@ export function createStructuredData() {
 					containedInPlace: { '@type': 'Place', name: 'Giza, Egypt' }
 				},
 				...(SITE_ORIGIN.length > 0 ? { url } : {})
+			},
+			{
+				'@type': 'SoftwareSourceCode',
+				name: `${SITE_NAME} source code`,
+				codeRepository: SOURCE_REPOSITORY_URL,
+				programmingLanguage: 'TypeScript',
+				isPartOf: SITE_ORIGIN.length > 0 ? { '@id': `${url}#website` } : { '@type': 'WebSite', name: SITE_NAME }
 			}
 		]
 	};

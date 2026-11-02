@@ -26,6 +26,7 @@ import {
 	nearestPreset,
 	sampleLighting
 } from './lighting.ts';
+import { dustPhaseRatio, SUN_HAZE_SHARE } from './scattering.ts';
 import { StarField } from './stars.ts';
 
 const REBAKE_HOURS = 0.75;
@@ -56,6 +57,8 @@ export class Environment {
 	private readonly haze = uniform(0);
 	private readonly fogColor = uniform(new Color());
 	private readonly density = uniform(0.0002);
+	private readonly hazeSun = uniform(new Vector3(0, 1, 0));
+	private readonly hazeSunShare = uniform(0);
 	private lastMinute = -1;
 	private lastFov = -1;
 	private lastAspect = -1;
@@ -127,8 +130,11 @@ export class Environment {
 			this.stars.mesh
 		);
 		scene.background = null;
+		const scattered = this.fogColor.mul(
+			float(1).sub(this.hazeSunShare).add(dustPhaseRatio(this.hazeSun).mul(this.hazeSunShare))
+		);
 		scene.fogNode = fog(
-			this.fogColor,
+			scattered,
 			Fn(() => {
 				const ray = positionWorld.sub(cameraPosition);
 				const vertical = ray.y.div(180).clamp(-30, 30).toVar();
@@ -195,6 +201,9 @@ export class Environment {
 		this.haze.value = look.haze;
 		this.density.value = look.fogDensity;
 		this.fogColor.value.setHex(look.fogColor);
+		this.hazeSun.value.copy(this.sunDirection);
+		this.hazeSunShare.value =
+			SUN_HAZE_SHARE * (1 - look.night) * Math.min(this.sun.intensity / Math.max(look.sunIntensity, 0.001), 1);
 		for (const sky of this.skies) {
 			sky.sunPosition.value.copy(this.sunDirection).multiplyScalar(450000);
 			sky.turbidity.value = look.turbidity;

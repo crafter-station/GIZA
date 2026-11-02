@@ -74,7 +74,7 @@ export class DustMotes {
 		material.scaleNode = float(MOTE_SIZE).mul(p.w.mul(1.5).add(0.5));
 		const view = normalize(positionWorld.sub(cameraPosition));
 		const forward = dot(view, this.sunDirection).max(0);
-		const scattering = forward.pow(6).mul(2.5).add(0.05);
+		const scattering = forward.pow(6).mul(1.4).add(0.05);
 		const nearFade = smoothstep(1.5, 6, positionWorld.sub(cameraPosition).length());
 		const farFade = float(1).sub(
 			smoothstep(MOTE_BOX * 0.3, MOTE_BOX * 0.5, positionWorld.sub(cameraPosition).length())

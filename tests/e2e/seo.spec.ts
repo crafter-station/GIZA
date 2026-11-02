@@ -2,6 +2,7 @@ import { expect, test } from '@playwright/test';
 
 const TITLE = 'Pyramids of Giza in 3D: Deconstruct Khufu, Block by Block';
 const ORIGIN = 'https://giza.crafter.run';
+const REPOSITORY = 'https://github.com/crafter-station/GIZA';
 
 test('the page exposes complete document metadata before hydration', async ({ request }) => {
 	const response = await request.get('/');
@@ -13,6 +14,7 @@ test('the page exposes complete document metadata before hydration', async ({ re
 	expect(html).toContain(`rel="canonical" href="${ORIGIN}/"`);
 	expect(html).toContain(`property="og:image" content="${ORIGIN}/metadata/og.jpg"`);
 	expect(html).toContain('name="twitter:card" content="summary_large_image"');
+	expect(html).toContain(`"codeRepository":"${REPOSITORY}"`);
 	expect(html.match(/application\/ld\+json/g)).toHaveLength(1);
 });
 
@@ -30,7 +32,15 @@ test('head tags survive hydration without duplicates', async ({ page }) => {
 	const raw = await structuredData.textContent();
 	expect(raw).not.toBeNull();
 	const graph = JSON.parse(raw ?? '{}');
-	expect(graph['@graph'].map((node: { '@type': string }) => node['@type'])).toEqual(['WebSite', 'LearningResource']);
+	expect(graph['@graph'].map((node: { '@type': string }) => node['@type'])).toEqual([
+		'WebSite',
+		'LearningResource',
+		'SoftwareSourceCode'
+	]);
+	const sourceCode = graph['@graph'].find((node: { '@type': string }) => node['@type'] === 'SoftwareSourceCode');
+	expect(sourceCode.codeRepository).toBe(REPOSITORY);
+	await expect(page.getByRole('link', { name: 'View Giza source code on GitHub' })).toHaveAttribute('href', REPOSITORY);
+	await expect(page.getByRole('link', { name: 'View Giza source code on GitHub' })).toHaveAttribute('target', '_blank');
 });
 
 test('metadata assets, robots and the sitemap are served', async ({ request }) => {

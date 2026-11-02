@@ -1,4 +1,6 @@
 <script lang="ts">
+import Icon from '@iconify/svelte';
+import github from '@iconify-icons/akar-icons/github';
 import { onMount, untrack } from 'svelte';
 import { parseFlags } from '#lib/app/flags.ts';
 import {
@@ -197,6 +199,17 @@ onMount(() => {
 			engine?.setLighting(mode);
 		}}
 	>
+		<a
+			href="https://github.com/crafter-station/GIZA"
+			target="_blank"
+			rel="noopener noreferrer"
+			aria-label="View Giza source code on GitHub"
+			title="View source code on GitHub"
+			class="flex size-11 items-center justify-center rounded-sm border border-gold/60 bg-lapis-deep/85 text-gold-light shadow-lg backdrop-blur-sm outline-none transition hover:bg-lapis focus-visible:ring-2 focus-visible:ring-gold-light"
+		>
+			<Icon icon={github} class="size-5" aria-hidden="true" />
+			<span class="sr-only">GitHub repository</span>
+		</a>
 		<SoundToggle pressed={$engineState.sound} disabled={!ready} onchange={(enabled) => engine?.setSound(enabled)} />
 	</LightingControls>
 	<header

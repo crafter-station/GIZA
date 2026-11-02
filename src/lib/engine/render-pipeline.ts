@@ -41,10 +41,21 @@ import {
 } from 'three/webgpu';
 import type { Tier } from '../app/quality.ts';
 import type { Environment } from '../world/atmosphere/environment.ts';
+import {
+	createSunUniforms,
+	ExposureAdaptation,
+	filmGrain,
+	photographicCurve,
+	SunTracker,
+	sunFlareNode
+} from './photographic.ts';
 
 const SHIMMER_NEAR = 700;
 const SHIMMER_FAR = 3500;
 const SHIMMER_AMPLITUDE = 0.0011;
+const GRAIN_AMOUNT = 0.035;
+const SUN_REFERENCE = 3.4;
+const BLOOM_INPUT_LIMIT = 8;
 
 export class AtmospherePipeline {
 	private readonly pipeline: RenderPipeline;
@@ -59,6 +70,11 @@ export class AtmospherePipeline {
 	private readonly saturation = uniform(1);
 	private readonly rayStrength = uniform(0);
 	private readonly heat = uniform(0);
+	private readonly contrast = uniform(1);
+	private readonly grain = uniform(0);
+	private readonly sun = createSunUniforms();
+	private readonly sunTracker = new SunTracker();
+	private readonly adaptation = new ExposureAdaptation();
 	private readonly rayColor = uniform(new Vector3(1, 0.85, 0.7));
 	private lastT = -1;
 	private width = 0;
@@ -67,12 +83,13 @@ export class AtmospherePipeline {
 	constructor(
 		renderer: WebGPURenderer,
 		scene: Scene,
-		camera: PerspectiveCamera,
+		private readonly camera: PerspectiveCamera,
 		private readonly environment: Environment,
 		tier: Tier,
 		noAo: boolean
 	) {
 		const temporal = tier === 'high' || tier === 'ultra';
+		this.grain.value = tier === 'low' ? 0 : GRAIN_AMOUNT;
 		renderer.toneMapping = AgXToneMapping;
 		renderer.toneMappingExposure = 1;
 		renderer.outputColorSpace = SRGBColorSpace;
@@ -102,29 +119,30 @@ export class AtmospherePipeline {
 			cos(screenUV.y.mul(610).sub(time.mul(4.1))).mul(0.5)
 		);
 		const beauty = this.scenePass.getTextureNode().sample(screenUV.add(wave.mul(shimmer)));
-		this.rays = temporal ? godrays(depth, camera, environment.shafts) : null;
-		let hdr: Node<'vec4'> = beauty;
+		this.rays = temporal ? godrays(depth, this.camera, environment.shafts) : null;
+		let hdr: Node<'vec4'> = vec4(beauty.rgb.add(sunFlareNode(this.sun, depth)), beauty.a);
 		if (this.rays) {
 			this.rays.resolutionScale = 0.5;
 			this.rays.raymarchSteps.value = tier === 'ultra' ? 32 : 20;
 			this.rays.density.value = 0.006;
 			this.rays.maxDensity.value = 0.25;
-			hdr = vec4(beauty.rgb.add(this.rays.getTextureNode().rgb.mul(this.rayStrength, this.rayColor)), beauty.a);
+			hdr = vec4(hdr.rgb.add(this.rays.getTextureNode().rgb.mul(this.rayStrength, this.rayColor)), hdr.a);
 		}
-		this.glow = bloom(hdr, 0.09, 0.45, 2);
+		this.glow = bloom(vec4(hdr.rgb.min(vec3(BLOOM_INPUT_LIMIT)), 1), 0.09, 0.45, 2);
 		this.glow.setResolutionScale(0.5);
 		hdr = vec4(hdr.rgb.add(this.glow.rgb), 1);
-		this.temporal = temporal ? traa(hdr, depth, this.scenePass.getTextureNode('velocity'), camera) : null;
+		this.temporal = temporal ? traa(hdr, depth, this.scenePass.getTextureNode('velocity'), this.camera) : null;
 		const resolved = this.temporal ?? hdr;
 		const tint = vec3(float(1).add(this.warmth), 1, float(1).sub(this.warmth));
 		const graded = resolved.rgb.mul(tint, this.exposure);
 		const luminance = dot(graded, vec3(0.2126, 0.7152, 0.0722));
 		const saturated = mix(vec3(luminance), graded, this.saturation);
 		const vignette = screenUV.sub(0.5).length().smoothstep(0.3, 0.8).mul(0.12).oneMinus();
-		const mapped = renderOutput(vec4(saturated.mul(vignette), 1), AgXToneMapping, SRGBColorSpace);
+		const toned = renderOutput(vec4(saturated.mul(vignette), 1), AgXToneMapping, SRGBColorSpace);
+		const mapped = filmGrain(photographicCurve(toned.rgb, this.contrast), this.grain);
 		const seed = screenCoordinate.x.add(screenCoordinate.y.mul(4096)).toUint();
 		const dither = hash(seed).sub(0.5).div(255);
-		this.pipeline = new RenderPipeline(renderer, vec4(mapped.rgb.add(dither).clamp(0, 1), 1));
+		this.pipeline = new RenderPipeline(renderer, vec4(mapped.add(dither).clamp(0, 1), 1));
 		this.pipeline.outputColorTransform = false;
 	}
 
@@ -135,6 +153,7 @@ export class AtmospherePipeline {
 	}
 
 	resetHistory(): void {
+		this.adaptation.reset();
 		if (this.temporal)
 			(this.temporal as typeof this.temporal & { setSize(width: number, height: number): void }).setSize(1, 1);
 	}
@@ -149,7 +168,18 @@ export class AtmospherePipeline {
 		if (this.lastT >= 0 && Math.abs(t - this.lastT) > 0.4) this.resetHistory();
 		this.lastT = t;
 		const look = this.environment.look;
-		this.exposure.value = look.exposure;
+		this.exposure.value = this.adaptation.update(
+			look,
+			this.environment.sun.intensity,
+			this.environment.sunDirection.y,
+			performance.now()
+		);
+		this.contrast.value = look.contrast;
+		this.sunTracker.update(this.camera, this.environment.sunDirection, this.sun, look);
+		const sunColor = this.environment.sun.color;
+		this.sun.color.value
+			.set(sunColor.r, sunColor.g, sunColor.b)
+			.multiplyScalar(look.sunIntensity / SUN_REFERENCE + 0.6);
 		this.warmth.value = look.warmth;
 		this.saturation.value = look.saturation;
 		this.rayStrength.value = look.rayStrength;

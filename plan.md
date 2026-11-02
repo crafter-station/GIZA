@@ -592,7 +592,7 @@ Este trabajo complementa las fases 8 y 10. Se construye por escalas: el DEM fija
 | Bloque | Entrega | Criterio de aceptación |
 | --- | --- | --- |
 | **1. Suelo de roca y arena** ✅ | Relieve erosionado de poca profundidad donde aflora la roca, fisuras y estratos en el material TSL; misma altura en CPU y GPU; protección de las plataformas y de la franja del valle | El suelo deja de verse uniforme a escala humana; cámara, rocas y monumentos no flotan ni se hunden; sin textura descargable ni nueva pasada de render |
-| **2. Huellas de cantera** ⬜ | Cortes y terrazas de extracción en sectores aproximados al sur de Keops y hacia el Campo Central; bloques de descarte y transición al wadi | Siluetas y ubicación contrastadas con la cartografía arqueológica; trazado interpretativo rotulado, sin inventar una planta exacta |
+| **2. Huellas de cantera** ✅ | Cortes y terrazas de extracción en sectores aproximados al sur de Keops y hacia el Campo Central; bloques de descarte y transición al wadi | Siluetas y ubicación contrastadas con la cartografía arqueológica; trazado interpretativo rotulado, sin inventar una planta exacta |
 | **3. Piedra construida** ⬜ | Diferenciar caliza local, revestimiento fino de Tura, granito y mampostería con variación a escala de bloque y de detalle; revisar juntas, roturas, cantos y oclusión | Pirámides, templos y mastabas mantienen sus dimensiones y se leen de cerca y de lejos en «Antes» y «Ahora» |
 | **4. Vida y movimiento** ⬜ | Integrar con la fase 8 en curso: viento, polvo, sombras y pocas aves distantes si aportan escala; evitar duplicar sistemas de partículas | Movimiento sobrio, sin tapar el texto ni crear bucles de animación adicionales; calidad baja y movimiento reducido conservan legibilidad |
 | **5. Perfilado y revisión** ⬜ | Capturas comparables, WebGPU y respaldo WebGL2, móvil, coste por nivel de calidad y limpieza de recursos | Las mejoras no rompen los presupuestos de §8 ni introducen errores de consola o regresiones de navegación |
@@ -600,3 +600,107 @@ Este trabajo complementa las fases 8 y 10. Se construye por escalas: el DEM fija
 Base documental para el bloque 1: [AERA, geología de la Esfinge](https://aeraweb.org/geology-of-the-sphinx/) describe la caliza Mokkatam y las capas de dureza alterna; [Kawae y Kamei, *Geomorphological Aspects at the Giza Plateau*](https://gizamedia.rc.fas.harvard.edu/documents/kawae_jg_120_2011.pdf) documenta fisuras y vaguadas en la formación Maadi al sur y la cantera de Keops al sur de la pirámide; el [Giza Plateau Mapping Project](https://isac.uchicago.edu/sites/oi.uchicago.edu/files/uploads/shared/docs/Publications/Annual-Reports/2016-2017/AR-2016-2017-Giza-Plateau-Mapping.pdf) registra estratos, cortes y zonas de cantera. Ninguna de estas fuentes proporciona un mapa centimétrico del microrelieve añadido: su forma procedural es una representación visual, no una medición arqueológica.
 
 Bloque 1 implementado: el relieve de hasta 0,38 m se genera con ruido determinista compartido por la CPU y TSL; las plataformas se amortiguan hasta altura intacta y la franja del valle queda fuera de la zona de erosión. La roca horizontal usa una variación de color distinta de los estratos de las paredes, y las fisuras finas y ondulaciones de arena desaparecen con la distancia para evitar patrones repetitivos. No se descargan texturas ni se añaden pasadas o mallas. Verificación: 17 pruebas focalizadas, `pnpm check` limpio, WebGPU y WebGL2 listos sin errores nuevos. En una comparación puntual con otras cargas simultáneas, la mediana WebGPU en nivel bajo fue igual con el efecto activado y desactivado (116,5 ms); no es una medición final de presupuesto, que corresponde al bloque 5.
+
+Bloque 2 implementado (`src/lib/data/quarry.ts`, `src/lib/world/terrain/quarry.ts`, `src/lib/world/props/quarry-rocks.ts`). Base documental: [AERA, *The Great Pyramid Quarry*](https://aeraweb.org/great-pyramid-quarry/) (Lehner, Giza Plateau Mapping Project).
+- **Lo documentado** (`KHUFU_QUARRY`, estimación con fuentes):
+  - La cantera es una herradura justo al sur de Keops y de la calzada de Kefrén, con los lados alineados con la pirámide.
+  - El fondo es irregular y sube hacia el norte; la profundidad máxima es de 30 m y se extrajeron unos 2,76 M m³.
+  - Canales anchos aislaban grandes bloques y canales estrechos los dividían en bloques de 1–2 t.
+  - Entre la cantera y la Esfinge quedan grandes bloques de roca madre aislados, y uno de 50–100 t sigue desbastado y unido a la roca.
+  - La salida sur se pierde bajo un wadi arenado.
+- **El trazado** (`QUARRY_TRACE`, rotulado como **hipótesis**):
+  - Unas 10 ha entre x = −95 y 225 m, con el borde norte 45 m al sur de la calzada de Kefrén (sin invadir su templo funerario) y una transición de 110 m hacia el wadi.
+  - Coincide con el Campo Central y con el escalón de 15–20 m de la pared oeste que ya muestra el DEM de Copernicus.
+  - No es una planta medida.
+- **Terrazas**: tres bancos rectilíneos de 1,5 m de alto y unos 14 m de ancho bajan desde cada pared, con esquinas en ángulo recto. Primero se probó a cuantizar la altura del DEM, pero dibujaba curvas de nivel, así que se descartó. La misma función se usa en la CPU (cámara, rocas) y en TSL, y se aplica sobre DEM + dunas antes de la erosión para que ambas coincidan.
+- **Material**:
+  - Las caras de corte se ven como roca clara con estratos a partir de pendientes menores (solo dentro de la cantera).
+  - El suelo lleva escombro de caliza y tafla, como describe AERA.
+  - Hay canales primarios cada 24 m y secundarios de 3,4 × 2,3 m, solo en parches y desvanecidos con la distancia (300 m y 70 m) para evitar el efecto de cuadrícula.
+- **Bloques**:
+  - 22 racimos de bloques de descarte de 1–2 t en el fondo y unos 70 semienterrados a lo largo del wadi, que se van espaciando.
+  - Prismas achaflanados de roca madre de 9–15 m, la mitad con un escalón desbastado encima, junto a la Esfinge.
+  - El monolito desbastado de 4,6 × 3,2 × 2,4 m.
+  - Todos usan la caliza existente, sin texturas ni pasadas nuevas.
+- **Verificación**: `pnpm check` y Biome limpios; revisión visual con amanecer, mediodía y ocaso desde lejos, sobre la pared oeste y junto a la Esfinge. Sin tests automáticos en esta entrega (a petición del propietario); su coste se medirá en el bloque 5.
+
+### Propuestas para acercarse a la referencia fotográfica (dorada, aérea, con bruma)
+
+La imagen de referencia del propietario (vista aérea al atardecer con bruma dorada, sol velado y relieve nítido) y el estudio de `open-water/` (solo estudio, sin copiar código) apuntan a que la diferencia está sobre todo en **la luz y la atmósfera**, y después en la textura a media distancia. Cada propuesta indica la técnica de Open Water de la que deriva y su coste esperado; son hipótesis por medir en el bloque 5.
+
+| Bloque | Entrega | Criterio de aceptación |
+| --- | --- | --- |
+| **6. Atmósfera física de polvo** ✅ | Sustituir la niebla exponencial por una atmósfera con LUT al estilo Hillaire 2020 (transmitancia, dispersión múltiple, vista del cielo y perspectiva aérea), como `open-water/src/sky/atmosphere.js`, pero con **aerosol mineral** (lóbulo hacia delante más ancho y albedo cálido), no marino. Composición `L = Lsuperficie · T + Lin-scatter` compartida por cielo, terreno, monumentos y partículas | La bruma dorada aparece por la física del sol bajo, sin teñir materiales a mano; las pirámides lejanas se aclaran y calientan con la distancia; sin bandas; coste medido por nivel |
+| **7. Cadena fotográfica HDR** ✅ | Autoexposición por luminancia logarítmica con adaptación temporal y balance de blancos parcial; curva en S suave antes de AgX; bloom en pirámide de mips que conserve la energía, con media de Karis contra destellos; grano fino de película y halo solar suave (aureola) en contraluz; protección contra NaN | Amanecer, mediodía, ocaso y noche se exponen solos sin saltos; el sol velado de la referencia se ve sin quemar el cielo; el texto del DOM no se ve afectado |
+| **8. Terreno a media distancia** ✅ | Detalle procedural de dunas de mayor frecuencia (barjanes orientados por el viento del norte) mezclado con el DEM; variación de color a varias escalas que rompa el aspecto borroso a 300–2 000 m; varianza de pendiente convertida en rugosidad (idea LEAN de `water.js`) para que el detalle no desaparezca de golpe | El suelo deja de verse «manchado» desde el dron; sin repetición visible; misma altura en CPU y GPU |
+| **9. Piedra de las pirámides** ✅ | Sombreado por hilada medida (sombra y polvo en cada escalón según la normal), oclusión de contacto en juntas, variación de tono por bloque visible desde lejos, desgaste de aristas y del revestimiento de Kefrén; detalle geométrico solo cerca | Desde el dron las caras se leen escalonadas como en la referencia (luz rasante con bandas); de cerca, bloques individuales; sin cambiar dimensiones |
+| **10. Cielo y luz rasante** ⬜ | Velo alto de cirros o polvo con rayos crepusculares más marcados al amanecer y al ocaso; disco solar velado; sombras de nubes lentas sobre la meseta (mapa de sombra de nubes a baja resolución, como en Open Water) | Los rayos y las sombras de nubes se ven en los capítulos de luz baja sin parpadeo; desactivables en nivel bajo |
+| **12. Vida discreta** ⬜ | Pocas aves lejanas (milanos planeando) como sprites con animación por vértice; remolinos de polvo ocasionales que reutilizan el sistema de motas; nada de bucles llamativos | Aportan escala sin distraer; se apagan con movimiento reducido y en nivel bajo |
+| **13. Sombra de horizonte del terreno** ⬜ | Mapa de horizonte precalculado del DEM (una vez, en el worker de terreno) para oscurecer valles y la cantera con el sol bajo más allá del alcance de las cascadas CSM | Al amanecer los wadis y la cantera quedan en sombra a varios kilómetros, como en la referencia; sin coste por fotograma apreciable |
+| **14. Deconstruir las tres pirámides** ⬜ | Selección de una pirámide objetivo (Keops, Kefrén o Micerinos) para todo el sistema de bloques: deconstruir, rayos X con corte, campo de fuerza, Inspector, derrumbe, construir con rampas y vista por origen. Ver el diseño debajo | Las tres pirámides se pueden deconstruir y reensamblar sin fugas de memoria ni pérdida de rendimiento; las cifras de Kefrén y Micerinos que no estén medidas se rotulan como estimación; Keops se sigue viendo y comportando igual |
+
+Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después el 14. El propietario aprobó todos los bloques salvo el 11, que queda fuera; se hacen de uno en uno.
+
+**Diseño del bloque 14 (selección de pirámide).** La forma recomendada es **una sola pirámide activa cada vez**, no las tres a la vez:
+- **Por qué solo una**:
+  - El campo de bloques de Keops ya ocupa hasta 140 000 instancias, búferes de cómputo, física y picking. Triplicarlo rompería el presupuesto de memoria y de GPU de §8.
+  - Además, la explicación educativa funciona mejor con una pirámide en foco.
+- **Cómo se elige la pirámide**:
+  - En «Explorar libremente», con un clic sobre la pirámide en la escena (el picking ya existe), y también con un selector en el panel de bloques con los tres cartuchos (`ROYAL_NAMES` ya tiene los de Kefrén y Micerinos).
+  - En el recorrido guiado, cada capítulo indica su pirámide.
+  - Al cambiar de pirámide, si estaba deconstruida se reensambla primero, la cámara se acerca a la nueva y el worker genera su disposición de bloques.
+- **Arquitectura**:
+  - Un descriptor `BlockTarget` por pirámide: forma, hiladas, posición, interiores, material por origen, línea de tiempo y rampas.
+  - Una API `engine.setTarget(id)` y un campo `target` en el estado.
+  - El `BlockField`, los interiores, las rampas, el casco de revestimiento y el detector de impactos se crean para el objetivo activo y se liberan al cambiar. Así se elimina el código que hoy está fijado a Keops (`KHUFU_SHAPE`, `khufuVolume`).
+- **Datos, sin inventar**:
+  - Kefrén y Micerinos no tienen una tabla de hiladas medidas transcrita (decisión de la Fase 5). Sus bloques usarán **hiladas de espesor uniforme rotuladas como esquema**, con la altura y la base documentadas, hasta que el propietario aporte una tabla verificada.
+  - En Micerinos, las 16 hiladas de granito (`MENKAURE_GRANITE`) definen su vista por origen.
+  - Los interiores (cámaras de Kefrén y de Micerinos) necesitan sus propias fuentes antes de modelarse; mientras tanto, los rayos X mostrarán solo el corte.
+  - La línea de tiempo de construcción usará la duración del reinado solo si hay fuente; si no, se ocultan los años y se muestra solo el orden por volumen.
+
+Bloque 7 implementado (`src/lib/engine/photographic.ts`, conectado en `render-pipeline.ts`):
+- **Exposición por medición incidente**, como la de Open Water: la luz que recibiría una tarjeta gris bajo el sol, el cielo y el entorno actuales, sin leer la imagen desde la GPU, así que funciona igual en WebGL2. Compensa como mucho entre ×0,9 y ×1,2 sobre la exposición de cada luz y se adapta en 1,2 s, como el ojo, al cambiar de luz o de capítulo. Se reinicia con la historia temporal.
+- **Curva fotográfica en S** en espacio de pantalla tras AgX (pivote 0,42), con un contraste propio de cada luz: amanecer 1,14, mediodía 1,08, ocaso 1,16 y noche 1,04.
+- **Aureola del sol velado**: halo radial con corrección de aspecto, apagado por oclusión si un monumento o el terreno tapan el sol (nueve muestras de profundidad alrededor del disco). Su intensidad depende de la luz (amanecer 0,5, ocaso 0,6, mediodía 0,12, noche 0).
+- **Destellos de lente**: tres discos muy tenues sobre el eje sol–centro. Son un **recurso fotográfico de estilo**, no un fenómeno de la escena.
+- **Grano de película** de luminancia, más fuerte en los medios tonos y animado por fotograma (desactivado en nivel bajo); se mantiene el dither contra bandas.
+- Los rayos crepusculares bajan de 0,12 a 0,08 al amanecer y de 0,10 a 0,065 al ocaso.
+- **Pendiente para el bloque 6**: con el sol bajo y la cámara a contraluz sigue habiendo un velo claro sobre toda la imagen. Viene de la niebla exponencial de color uniforme y del bloom sobre el cielo brillante, no de esta cadena. Se resolverá con la dispersión física del bloque 6.
+- No se implementó el bloom con media de Karis: el `BloomNode` de three no la ofrece y no se ha visto el problema de destellos que resuelve.
+- **Verificación**: `pnpm check` y Biome limpios; capturas a mediodía y al ocaso a contraluz en la RTX 3050. Sin tests automáticos, a petición del propietario.
+
+Bloque 6 implementado (`src/lib/world/atmosphere/scattering.ts`, `environment.ts` y la entrada del bloom en `render-pipeline.ts`):
+- **Diagnóstico medido antes de cambiar nada.** Con el bloom y los rayos desactivados, el ocaso a contraluz se veía nítido; reactivando solo los rayos seguía nítido. **El velo lo causaba el bloom**: el disco solar del `SkyMesh` tiene una radiancia enorme y el bloom la repartía por media pantalla. La hipótesis previa, que culpaba a la niebla, era incorrecta.
+- **Energía limitada a la entrada del bloom**: se recorta a 8 en HDR, que es la idea de la media de Karis de Open Water contra los destellos. El sol conserva su halo sin lavar la escena; vuelven las siluetas a contraluz.
+- **Dispersión por polvo mineral**: el color de la bruma ya no es uniforme. Se modula con una función de fase de Henyey–Greenstein de dos lóbulos:
+  - lóbulo hacia delante g = 0,65 (85 %) y retrodispersión g = −0,3 (15 %), con una razón respecto a la dispersión isótropa limitada a 5;
+  - el 55 % de la bruma depende de la dirección del sol, escalado por la altitud del sol y apagado de noche.
+  - Hacia el sol la bruma brilla dorada; de espaldas, el aire es más limpio y el relieve gana contraste.
+  - La transmitancia sigue siendo la integral exponencial en altura (escala de 180 m) que ya existía.
+  - Los coeficientes son una **aproximación artística declarada** para el polvo del desierto, no una medición de Giza.
+- Las motas de polvo reducen su brillo a contraluz (de 2,5 a 1,4), porque al ocaso se veían demasiados puntos.
+- **No se hicieron las LUT completas de Hillaire** (transmitancia, dispersión múltiple, vista del cielo y perspectiva aérea). Con la corrección del bloom y la fase direccional se obtiene el aspecto de la referencia sin cuatro pasadas nuevas. Quedan como opción si en el bloque 5 se ven bandas o la transición de luz no convence. El azul a gran distancia ya lo aporta la dispersión de Rayleigh del `SkyMesh`.
+- **Verificación**: `pnpm check` y Biome limpios; capturas al ocaso hacia el sol y de espaldas al sol, y a mediodía. Sin tests automáticos, a petición del propietario. La cadena HDR y la atmósfera son las que más acercan el resultado a la referencia con menos riesgo: no cambian geometría ni datos, y su efecto se compara en las mismas capturas `?cam=` antes y después.
+
+Bloque 9 implementado (`src/lib/materials/masonry.ts`, `src/lib/materials/stone-detail.ts`, `masonry-palette.ts`):
+- **Diagnóstico**: desde el dron Keops ya usa la malla con las hiladas reales (el LOD cambia a ~1 440 m en nivel alto), pero el tono era aleatorio por bloque y a distancia se leía como ruido de puntos.
+- **Tono por hilada**: el tono de cada bloque mezcla un 60 % de azar por bloque y un 40 % por hilada, así que a distancia aparecen estrías horizontales, como en la referencia.
+- **Paleta más tostada** (núcleo claro `#cdb284`, oscuro `#94754f`) y mayor rango de tono entre bloques; antes la cara al sol se veía crema lavada. El polvo de los escalones baja del 55 % al 35 % para que se vea la piedra.
+- **Desgaste por altura**: los primeros 7 m tienen la abrasión y el polvo de la arena; entre 25 y 130 m aumenta una pátina cálida (`patina`). Es una **aproximación visual**, no una medición.
+- **Relieve de piedra picada** sin texturas: la normal se perturba con el gradiente de superficie de Mikkelsen (derivadas de pantalla) sobre ruido a dos escalas. Tiene 5 cm en el núcleo y un cuarto de eso en el revestimiento y el granito, hunde las juntas y se desvanece entre 40 y 220 m, sin coste a distancia ni aliasing.
+- **Rugosidad**: las caras horizontales con polvo pasan de 0,9 a 1.
+- **No se hizo**: el desgaste geométrico de las aristas, ni la oclusión de contacto específica en las juntas (la cubren el AO de pantalla y el hundimiento del relieve). Quedan para revisar en el bloque 5 si se ven necesarios.
+- **Verificación**: `pnpm check` y Biome limpios; capturas desde el dron al amanecer y junto a la cara este de Keops. Sin tests automáticos, a petición del propietario. La prueba de paleta `tests/e2e/palette.spec.ts` puede necesitar recalibrarse por el cambio de tono.
+
+Bloque 8 implementado (`src/lib/world/terrain/ridges.ts`, `relief.ts` y `src/lib/materials/ground.ts`):
+- **Causa de las manchas**: la normal se calculaba con un paso de 1,5 m sobre un DEM de 30 m interpolado bilinealmente, y cada celda se veía como una faceta.
+- **Normales a dos escalas**: la altura se separa en base (DEM y nivel regional) y detalle (dunas, crestas y cantera). La base se deriva con un paso de 12 m, que suaviza las facetas, y el detalle con 1,5 m, que lo mantiene nítido. La altura total y la de la CPU no cambian, así que la cámara, las rocas y los monumentos siguen apoyados igual.
+- **Crestas de duna transversales** al viento del norte:
+  - longitud de onda de 44 m y hasta 1,6 m de alto, con perfil asimétrico: barlovento suave en el 78 % y cara de avalancha abrupta en el 22 %;
+  - crestas curvadas hasta 58 m y partidas en tramos (escalas de 48 m y 160 m), en campos de unos 170 m;
+  - fuera de las plataformas, la cantera y el valle, y al 55 % dentro de la zona de roca de la meseta.
+  - Se calculan igual en la CPU y en TSL. Es una forma procedural, no una medición de las dunas reales.
+- **Color a escala media**: las caras a sotavento son más oscuras y rojizas (`leeSand`), con hasta un 35 % de mezcla, y hay parches de *serir* (pavimento de grava) de unos 120 m con hasta un 40 % de mezcla.
+- **Pendiente**: el shader del suelo es más pesado (dos gradientes y la función de crestas). Al cargar se nota una compilación más larga, que hay que medir en el bloque 5. A ras de suelo en el desierto, con el sol bajo, se ven un par de sombras alargadas sin identificar; se revisarán con el bloque 13.
+- **Verificación**: `pnpm check` y Biome limpios; capturas desde el dron al amanecer y a ras del desierto al ocaso. Sin tests automáticos, a petición del propietario.
