@@ -6,7 +6,7 @@ Este documento recoge **decisiones**, no opciones. Si una decisión se cambia, s
 
 **Idioma y estilo**: este plan es el único archivo en español. Todo lo demás (código, identificadores, documentación, commits y textos de la interfaz) se escribe en **inglés**, y el código **no lleva comentarios** (ni JSDoc). Reglas recogidas en `AGENTS.md`.
 
-**Estado**: ✅ Fases 0 a 5 concluidas · 🔄 Fase 6 en curso (deconstrucción con rayos X, campo de fuerza, Inspector y derrumbe con física; faltan Construir, la vista por material y los interiores) · 2026-11-01. El detalle está en §10.
+**Estado**: ✅ Fases 0 a 7 concluidas · 2026-11-01. El detalle está en §10.
 
 ---
 
@@ -238,11 +238,11 @@ Versiones fijadas en la Fase 0 (exactas en `package.json`): `three` 0.187.0, `gs
 
 | Herramienta | Uso |
 | --- | --- |
-| Blender (última versión estable) | Retopología y horneado de la Esfinge, ajustes de escaneos y exportación GLB |
+| Blender (última versión estable) | Ajustes de otros escaneos y exportación GLB; la Esfinge definitiva ya está integrada |
 | `@gltf-transform/cli` | `optimize` con meshopt, cuantización, texturas a KTX2 y deduplicación |
 | KTX-Software (`toktx`) | Compresión Basis (UASTC para normales, ETC1S para color) |
 | `tools/build-terrain.ts` (`geotiff` en Node) | Recortar el DEM Copernicus GLO-30 de Giza y remuestrearlo al marco local → heightmap Uint16 (sustituye a GDAL + QGIS) |
-| EZ-Tree (generador procedural de árboles para three.js) | Acacias y tamariscos → GLB |
+| `InstancedMesh` de three.js | Palmeras, acacias y papiro procedurales sin descarga de GLB |
 | Poly Haven (CC0) | Texturas de arena y roca y modelos de rocas escaneadas |
 
 ---
@@ -258,14 +258,14 @@ Principio: **procedural cuando la forma sigue reglas** (geometría arquitectóni
 | **Bloques individuales** | Procedural (§3.5) | Achaflanado, desgaste de aristas, estratos y nummulites de cerca, variación de tono por instancia | ver §3.4 |
 | **Bloque del Inspector** | Procedural en el momento: caja subdividida 64×64 por cara con desplazamiento en TSL usando el mismo ruido que su versión instanciada | Grietas, desconchados y textura fósil a escala de mano | 50 k triángulos |
 | **Interiores de Keops** | Procedural a partir de planos acotados (pasajes, Gran Galería con falsa bóveda, Cámara del Rey con vigas, sarcófago de granito) | Granito pulido con clearcoat; caliza con hollín; luz de antorchas (pool de luces) | Carga perezosa |
-| **Gran Esfinge** | **GLB**: modelo fotogramétrico **de la Gran Esfinge** con licencia CC BY o CC0, retopología en Blender a ≈ 120 k triángulos con normal map horneado del original. Si no hay licencia válida, se esculpe en Blender sobre fotos de referencia (73 × 20 × 19 m, mirando al este). El GLB aportado en la Fase 0 ("Egyptian-style sphinx statue", Sofia Nasopoulou, CC BY 4.0) es una **estatua romana del Museo de Maratón**, no la Gran Esfinge: se usa solo como marcador provisional (Fases 2–6) y se sustituye en la Fase 7 | Erosión real de las capas de la roca | 120 k triángulos + KTX2 de 2 K |
+| **Gran Esfinge** | **GLB definitivo**, ya integrado en la Fase 2: escaneo de una maqueta histórica en bronce de 1903 de Bert W. Longworth que representa la Gran Esfinge, The Watt Institution, CC BY 4.0. Optimizado a 118 012 triángulos; se conserva sin sustituirlo. La interfaz identifica su procedencia y no lo presenta como fotogrametría del monumento | Silueta de la maqueta histórica y recinto excavado | 118 k triángulos, 1,4 MB |
 | **Pirámides de las reinas, mastabas** | Procedural: las reinas con el mismo generador; las mastabas como `InstancedMesh` de bloques rectangulares con pendiente lateral y variantes | Campo de mastabas al oeste de Keops en rejilla, como el real | Instancias |
 | **Templos y calzadas** | Procedural con kit modular (muros, pilares monolíticos de granito, pavimento de basalto) | Ruinas en "Ahora", completos en "Antes" | - |
 | **Rocas sueltas y escombros** | **Procedural en código** (icosaedro + cortes de fractura + erosión), `InstancedMesh` por variante | Dispersión por pendiente y escombros en las bases | 6 variantes × 180 triángulos |
-| **Palmeras** | Procedural en código: tronco como tubo con anillos de cicatrices de hoja (TSL), copa de frondas instanciadas como planos curvados con alfa generada en canvas | Balanceo con viento en el vertex shader; contraluz traslúcida (técnica de la skill Seijaku) | Instancias + impostores lejanos |
-| **Acacias y tamariscos** | EZ-Tree → GLB → `gltf-transform`; impostores (billboards) a distancia | Solo en el valle y la orilla | - |
-| **Papiro y juncos** | Tarjetas instanciadas con alfa | Orilla del Nilo en el modo "Antes" | - |
-| **Nilo y canal antiguo** | Plano de agua con material nodal: normales animadas, Fresnel, reflejo del cielo vía entorno (sin reflector caro) | Solo visible a distancia o en el modo "Antes" | - |
+| **Palmeras** | Troncos cilíndricos y frondas curvas instanciadas; impostores de canvas a distancia | Balanceo suave en TSL | Instancias + impostores lejanos |
+| **Acacias** | Troncos y copas aplanadas instanciados en código | Franja oriental del valle | Instancias |
+| **Papiro y juncos** | Tallos y umbelas instanciados con fundido de opacidad | Orilla hipotética del canal en el modo "Antes" | Instancias |
+| **Nilo y canal antiguo** | Superficies adaptadas al terreno con color y ondulación en TSL | Nilo esquemático a distancia; canal y puerto hipotéticos en "Antes" | Sin reflector |
 | **Barcos, trineos, cuerdas** | Procedural sencillo en código | Escena de construcción | - |
 | **Personas (escala)** | Siluetas de baja geometría, sin rostro | Indicador de escala de 1,75 m | - |
 | **Cielo** | Atmósfera física nodal (Rayleigh + Mie con aerosol de polvo) + sol de `suncalc` | Bruma de polvo y degradados correctos al amanecer | - |
@@ -352,7 +352,7 @@ pyramids/
 ├── open-water/ · seijaku/         # repos de referencia: solo estudio, ignorados por git y por Vite
 ├── assets-src/ ✅                 # fuentes pesadas que NO se publican (Git LFS); cada carpeta con README de licencia
 │   ├── dem/ ✅                    # recorte Copernicus GLO-30 + vista previa
-│   ├── models/ ✅                 # sphinx-marathon/ (marcador provisional); luego Esfinge, rocas, acacias
+│   ├── models/ ✅                 # fuente de la Esfinge definitiva; otras fuentes con autor y licencia
 │   ├── blender/                   # .blend
 │   └── photos/ · illustrations/ · textures/   # ver §11
 ├── static/                        # se sirve tal cual
@@ -506,7 +506,7 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ✅ Revisión visual a 5 m (bloques, juntas y huecos en la base de Keops), a 100–300 m (cara norte de Keops, Kefrén al atardecer, Micerinos) y a ≈ 2 km (vista aérea de toda la meseta).
 - **Hecho cuando** ✅: a 5 m, a 100 m y a 2 km cada pirámide se reconoce (capturas revisadas).
 -
-### Fase 6 — Deconstrucción (la interacción estrella) 🔄 (en curso; núcleo funcional el 2026-11-01)
+### Fase 6 — Deconstrucción (la interacción estrella) ✅ (concluida el 2026-11-01)
 - ✅ **Bloques desde la misma tabla medida**: la capa exterior sigue las 201 hiladas existentes de Petrie con el mismo retranqueo del núcleo que la malla de Keops, así que el intercambio malla ↔ bloques coincide hilada a hilada.
 - ✅ **Honestidad de escala (§3.4)**: el interior se rellena de **superbloques** que agrupan 10 hiladas. Cada uno sabe cuántos bloques reales representa (≈ 1,13 m³ por bloque = 2,6 M m³ / 2,3 M bloques, dato derivado). El panel lo dice («≈ 2,3 millones estimados · N mostrados: la capa exterior bloque a bloque y el núcleo en superbloques de ≈ 73–135 bloques») y la ficha distingue un bloque de un superbloque.
 - ✅ **Coreografía**: anticipación de 0,6 s con brillo cálido y sacudida de cámara antes del despegue; ola de arriba abajo; vista explotada; deriva de flotación; reensamblado de abajo arriba.
@@ -517,16 +517,20 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ✅ **Derrumbe con física real**: Rapier (SIMD) en un Web Worker. Se leen de la GPU las posiciones de los bloques de las hiladas superiores (400 / 1 000 / 2 000 / 3 000 según el nivel, 800 como máximo en WebGL2), caen con impulso hacia fuera y chocan entre sí y con el suelo; el resto sigue flotando. Al reensamblar, el muelle los devuelve desde donde cayeron.
 - ✅ **Movimiento reducido**: con `prefers-reduced-motion`, «Deconstruir» muestra un corte por la mitad de las hiladas en lugar de bloques volando.
 - ✅ **Criterio de memoria y rendimiento**: 15 ciclos seguidos de deconstruir → seleccionar → inspeccionar → derrumbar → reensamblar en la RTX 3050 en ultra (139 924 bloques). La memoria de GPU queda estable (42 geometrías / 42 texturas tras el estreno inicial, sin crecer) y la mediana sigue en 16,7 ms con el peor frame en 17,6 ms.
-- ⬜ **Construir** (línea de tiempo de 20–27 años con contadores y selector de hipótesis de rampa rotuladas).
-- ⬜ **Vista por material u origen**.
-- ⬜ **Interiores de Keops revelados**: pasajes, Gran Galería, cámaras, Gran Vacío y corredor norte, con las medidas de §2.1. Sus posiciones horizontales necesitan una fuente acotada antes de modelarlas.
-- ⬜ Polvo saliendo de las juntas en la anticipación (partículas de la Fase 8) y retumbo sonoro (Fase 8).
-- ⬜ E2E del ciclo completo en CI.
-- **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria y dentro de presupuesto (✅ medido), y están todas las acciones de §3.3 (faltan Construir, la vista por material y los interiores).
+- ✅ **Interiores de Keops** (`src/lib/data/khufu-interior.ts`, `src/lib/monuments/interiors/`): pasajes descendente y ascendente, cámara subterránea, Cámara de la Reina, Gran Galería en 7 resaltes, antecámara y Cámara del Rey en granito, situados con el «General summary of the positions inside the Great Pyramid» de Petrie (pulgadas al norte, al este y sobre el pavimento). El Gran Vacío y el corredor norte (ScanPyramids) se dibujan translúcidos y rotulados como **hipótesis de posición**: las fuentes publican tamaño y zona, no coordenadas. Se ven al deconstruir y con los rayos X, que ahora **cortan también la mitad este** (todo lo que queda a más de 7 m al este del eje), porque los pasajes corren de norte a sur a ≈ 7 m al este del centro.
+- ✅ **Construir** (`src/lib/data/construction.ts`, `src/lib/ui/ConstructionTools.svelte`): deslizador y botón de reproducción (GSAP, 1 s por año) que levantan las hiladas en orden, **ponderadas por el volumen acumulado** de cada hilada medida (la mitad del volumen está puesta en la hilada 35, a 30 m). Contadores rotulados como **estimación**: año ≈ n de 26, bloques ≈ 2,3 M × fracción, hiladas y altura, y 20 000–30 000 trabajadores. La nota aclara que el ritmo constante es una suposición que ninguna fuente registra.
+- ✅ **Hipótesis de rampa** (Bits UI Select): recta, en zigzag, en espiral (Lehner 1997) e interna (Brier y Houdin 2008), cada una rotulada como **hipótesis** con su resumen. Se dibujan como losas esquemáticas (pendiente 1:10, 8 m de ancho, la interna 12 m dentro de las caras y visible a través de la sillería) que crecen con la obra; el panel dice que la pendiente y el ancho son elecciones visuales. Geometría pura y probada en `src/lib/monuments/construction/ramps.ts`.
+- ✅ **Vista por origen de la piedra**: corta la mitad este, muestra la envolvente original del **revestimiento de Tura** como un casco translúcido y deja a la vista el **granito de Asuán** de la Cámara del Rey, con una leyenda de tres orígenes con fuentes (caliza local de la cantera sur, caliza de Tura según el Diario de Merer, granito de Asuán a más de 800 km).
+- ✅ **E2E** `tests/e2e/construction.spec.ts` (línea de tiempo, rampa, leyenda y reinicio sin errores de consola), además del ciclo de `home.spec.ts`.
+- ➡️ Polvo saliendo de las juntas en la anticipación y retumbo sonoro: pasan a la Fase 8 (partículas y audio).
+- **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria y dentro de presupuesto (✅ medido), y están todas las acciones de §3.3 (✅).
 
-### Fase 7 — Esfinge, entorno y vegetación ⬜
-- Gran Esfinge definitiva: buscar un escaneo **de la Gran Esfinge** con licencia CC BY/CC0; si no existe, esculpirla en Blender. Retirar el marcador de Maratón. Franja del Nilo; palmeras procedurales, acacias (EZ-Tree), papiro e impostores; paisaje antiguo del modo "Antes" (revestimiento de Tura, puerto, orilla).
-- **Hecho cuando**: el modo "Antes / Ahora" funciona como transición continua.
+### Fase 7 — Esfinge, entorno y vegetación ✅
+- ✅ La Esfinge integrada en la Fase 2 es la **definitiva por decisión del propietario**. Se conserva el modelo y su atribución como escaneo de una maqueta histórica, sin presentarlo como fotogrametría del monumento.
+- ✅ Franja fértil oriental adaptada al relieve y cinta esquemática del Nilo; palmeras y acacias procedurales instanciadas, papiro en el modo antiguo e impostores lejanos. Se evita EZ-Tree: a esta distancia las siluetas procedurales requieren menos descargas y permiten niveles de calidad controlados.
+- ✅ «Antes / Ahora» usa una transición continua y reversible ligada al recorrido, con control manual accesible de Bits UI y opción de volver a seguir la narración. Aparecen el revestimiento de Tura, recintos de templos, puerto y canal aproximados. La interfaz identifica expresamente los elementos interpretativos.
+- ✅ Verificación: `pnpm check` sin errores ni avisos; 15 pruebas focalizadas de posición, línea temporal y cámara; E2E en Chromium del teclado y la reversibilidad; revisión visual WebGPU del valle y la reconstrucción, sin errores de consola.
+- **Hecho cuando**: ✅ el modo «Antes / Ahora» funciona como transición continua.
 
 ### Fase 8 —-Atmósfera viva y sonido ⬜
 - Arena arrastrada, polvo en haces, calor en el horizonte, antorchas, noche con cielo de 2560 a. C.
@@ -573,6 +577,6 @@ El contenido factual usa **fotos reales con licencia** (Wikimedia Commons, domin
 | Las APIs de TSL cambian entre versiones de three | Versión fijada por fase; actualizar solo al inicio de una fase, con capturas de regresión |
 | El respaldo WebGL2 es más lento en compute | Nivel máximo "Media" en el respaldo; Derrumbe limitado |
 | Errores históricos | `sources.ts` obligatorio; hipótesis rotuladas; revisión de los textos antes de publicar |
-| Licencia y fidelidad de la Esfinge | Licencia verificada antes de integrar **y comprobación de que el modelo es la Gran Esfinge**; si no lo hay, modelado propio |
+| Licencia y fidelidad de la Esfinge | Conservar el modelo definitivo de la maqueta histórica (CC BY 4.0); identificar su procedencia en la interfaz y no atribuirle precisión de escaneo del monumento |
 | El DEM solo cubre hasta 30° N | Cuadrado desplazado al sur; para ampliar al norte, descargar la tesela N30 E031 y unirla en `build-terrain.ts` |
 | Peso de descarga | KTX2, meshopt, carga por regiones, presupuestos de §8 en CI con `check-assets` |
