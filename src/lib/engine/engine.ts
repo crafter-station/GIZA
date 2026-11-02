@@ -59,6 +59,7 @@ import { AncientReconstruction } from '../world/era/reconstruction.ts';
 import { tourEra } from '../world/era/timeline.ts';
 import { WorkersTown } from '../world/era/workers-town.ts';
 import { createBirds, disposeBirds } from '../world/life/birds.ts';
+import { DailyLife } from '../world/life/daily-life.ts';
 import { DustDevils } from '../world/life/dust-devils.ts';
 import { createBedrockBlocks, quarryBedrock, quarryRocks } from '../world/props/quarry-rocks.ts';
 import { scatterRocks } from '../world/props/rock-scatter.ts';
@@ -292,15 +293,18 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const reconstruction = new AncientReconstruction(PYRAMIDS, platformOf, groundAt);
 	const mudbrick = createAshlarMaterial(ASHLAR_STYLES.mudbrick);
 	const workersTown = new WorkersTown(groundAt, ruinMaterials.limestone, mudbrick);
-	scene.add(valley.group, reconstruction.group, workersTown.wall, workersTown.town);
+	const dailyLife = new DailyLife(groundAt);
+	scene.add(valley.group, reconstruction.group, workersTown.wall, workersTown.town, dailyLife.group);
 	let townPresence = 0;
 	let activeHotspot: string | null = null;
 	const updateTown = (dt: number) => {
-		const explored = director.isFree ? (activeHotspot === TOWN_HOTSPOT ? 1 : TOWN_PREVIEW) : 0;
+		const focusedTown = activeHotspot === TOWN_HOTSPOT || activeHotspot === 'daily-life';
+		const explored = director.isFree ? (focusedTown ? 1 : TOWN_PREVIEW) : 0;
 		const target = Math.max(tourEra(director.t), explored);
 		townPresence += (target - townPresence) * (1 - Math.exp(-dt / TOWN_FADE_SECONDS));
 		if (Math.abs(target - townPresence) < 0.002) townPresence = target;
 		workersTown.setEra(townPresence);
+		dailyLife.update(dt, camera, townPresence, tier);
 	};
 	let renderedEra = -1;
 	const updateEra = () => {
@@ -503,7 +507,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		patch({ collapsed: false });
 	};
 	let inspecting: number | null = null;
-	const blocksVisible = () => !!field && (benchmarking || !field.settled || field.sectioned || field.building);
+	const blocksVisible = () => !!field && (!field.settled || field.sectioned || field.building);
 	const updateInspector = () => {
 		if (!field || inspecting === null) return;
 		camera.getWorldDirection(forward);
@@ -800,6 +804,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		setTarget,
 		focusHotspot: (id) => {
 			activeHotspot = id;
+			controls.minDistance = id === 'daily-life' ? 3 : 40;
 			const flight = id === null ? null : hotspots.flight(id, camera.position);
 			if (flight) director.focus(flight.camera.toArray(), flight.anchor.toArray(), reducedMotion ? 0 : flight.seconds);
 			patch({ hotspot: flight ? id : null });
@@ -916,6 +921,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			reconstruction.dispose();
 			for (const material of Object.values(ruinMaterials)) material.dispose();
 			workersTown.dispose();
+			dailyLife.dispose();
 			mudbrick.dispose();
 			for (const object of pyramidObjects) {
 				object.traverse((child) => {

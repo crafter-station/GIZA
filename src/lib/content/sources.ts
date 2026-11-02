@@ -8,6 +8,12 @@ export interface Source {
 }
 
 export const SOURCES = {
+	aeraFeedingWorkers: {
+		author: 'Ancient Egypt Research Associates (AERA)',
+		title: 'Feeding Pyramid Workers: the 1993 bakery experiment',
+		year: 1993,
+		url: 'https://aeraweb.org/feeding-pyramid-workers/'
+	},
 	arceKhufuTemple: {
 		author: 'American Research Center in Egypt; Ancient Egypt Research Associates',
 		title: 'Great Pyramid Temple Conservation Project',

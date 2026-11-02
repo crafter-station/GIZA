@@ -50,9 +50,10 @@ function choose(id: string) {
 
 {#if current}
 	<section
-		class="papyrus fixed bottom-24 left-4 z-20 w-[min(22rem,calc(100vw-2rem))] rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:bottom-6"
+		class="papyrus custom-scrollbar touch-pan-y fixed bottom-24 left-4 z-20 max-h-[calc(100svh-8rem)] w-[min(22rem,calc(100vw-2rem))] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:bottom-6"
 		aria-label="Point of interest"
 		aria-live="polite"
+		data-lenis-prevent
 		data-testid="hotspot-card"
 	>
 		<div class="frieze h-[7px]" aria-hidden="true"></div>
@@ -111,7 +112,8 @@ function choose(id: string) {
 				side="top"
 				align="start"
 				sideOffset={8}
-				class="papyrus z-50 max-h-[60svh] w-72 overflow-y-auto rounded-sm border border-gold/70 p-1.5 text-sm shadow-xl"
+				class="papyrus custom-scrollbar touch-pan-y z-50 max-h-[60svh] w-72 overflow-y-auto overscroll-contain rounded-sm border border-gold/70 p-1.5 text-sm shadow-xl"
+				data-lenis-prevent
 			>
 				<ol class="grid gap-0.5">
 					{#each HOTSPOTS as hotspot, i (hotspot.id)}

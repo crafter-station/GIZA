@@ -1,6 +1,7 @@
 import { PLAN_FEATURES } from '#lib/monuments/complex/plan-features.ts';
 import { type Fact, fact } from '../content/sources.ts';
 import type { BlockTargetId } from './block-targets.ts';
+import { DAILY_LIFE, DAILY_LIFE_SITE } from './daily-life.ts';
 import { GIS_MASTABAS } from './giza-gis.ts';
 import { SPHINX_PLACEMENT } from './layout.ts';
 import { KHAFRE, KHUFU_OPENINGS, MENKAURE, MENKAURE_GRANITE, SPHINX } from './pyramids.ts';
@@ -189,6 +190,12 @@ export const HOTSPOTS: readonly Hotspot[] = [
 			{ title: 'Aswan granite casing', body: MENKAURE_GRANITE.note ?? '' },
 			{ status: 'estimate', sources: MENKAURE_GRANITE.sources, checked: 'secondary' }
 		)
+	},
+	{
+		id: 'daily-life',
+		anchor: { kind: 'ground', x: DAILY_LIFE_SITE.x, z: DAILY_LIFE_SITE.z, lift: 0.8 },
+		view: { distance: 12, bearing: 160, elevation: 16 },
+		text: DAILY_LIFE
 	},
 	{
 		id: 'menkaure-breach',

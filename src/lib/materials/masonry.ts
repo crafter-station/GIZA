@@ -2,26 +2,32 @@ import {
 	abs,
 	attribute,
 	cameraPosition,
+	cameraViewMatrix,
 	color,
 	distance,
+	Fn,
 	float,
 	floor,
 	fract,
+	fwidth,
 	hash,
 	max,
 	min,
 	mix,
 	mx_noise_float,
+	normalize,
 	normalWorld,
 	oneMinus,
 	positionLocal,
 	positionWorld,
 	saturate,
 	select,
+	sign,
 	smoothstep,
-	vec3
+	vec3,
+	vec4
 } from 'three/tsl';
-import { DoubleSide, MeshStandardNodeMaterial } from 'three/webgpu';
+import { DoubleSide, MeshStandardNodeMaterial, type Node } from 'three/webgpu';
 import { STONE } from '../monuments/pyramid/generator.ts';
 import { cloudShadow } from '../world/atmosphere/clouds.ts';
 import { GROUND_PALETTE } from './ground.ts';
@@ -30,6 +36,12 @@ import { surfaceGradientNormal } from './stone-detail.ts';
 
 const RELIEF_DEPTH = 0.05;
 const TREAD_DUST = 0.35;
+const COURSE_SCALE = 0.7;
+const ALIAS_PIXELS: readonly [number, number] = [1.5, 4];
+const FACE_SLOPE = (52 * Math.PI) / 180;
+const STEP_SHADOW_MEAN = 0.82;
+const FACE_SLOPE_SIN = Math.sin(FACE_SLOPE);
+const FACE_SLOPE_COS = Math.cos(FACE_SLOPE);
 const RELIEF_FADE: readonly [number, number] = [40, 220];
 const BASE_WEAR_HEIGHT = 7;
 const PATINA_HEIGHT: readonly [number, number] = [25, 130];
@@ -50,10 +62,18 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 	const riser = oneMinus(smoothstep(0.35, 0.75, abs(normalWorld.y)));
 	const verticalJoint = oneMinus(smoothstep(0.02, 0.06, edge)).mul(riser);
 	const bedJoint = oneMinus(smoothstep(0.03, 0.09, courseV)).mul(riser);
-	const joint = max(verticalJoint, bedJoint).mul(select(stone.greaterThan(STONE.roughCore - 0.5), float(0), float(1)));
-	const blockTone = hash(course.mul(13.7).add(blockIndex.mul(1.37)))
-		.mul(0.6)
-		.add(hash(course.mul(5.11).add(0.3)).mul(0.4));
+	const pixelsPerCourse = float(COURSE_SCALE).div(fwidth(p.y).max(1e-4));
+	const resolved = smoothstep(ALIAS_PIXELS[0], ALIAS_PIXELS[1], pixelsPerCourse);
+	const joint = max(verticalJoint, bedJoint)
+		.mul(select(stone.greaterThan(STONE.roughCore - 0.5), float(0), float(1)))
+		.mul(resolved);
+	const blockTone = mix(
+		float(0.5),
+		hash(course.mul(13.7).add(blockIndex.mul(1.37)))
+			.mul(0.6)
+			.add(hash(course.mul(5.11).add(0.3)).mul(0.4)),
+		resolved
+	);
 	const grain = mx_noise_float(p.mul(0.8))
 		.mul(0.5)
 		.add(mx_noise_float(p.mul(3.1)).mul(0.25));
@@ -66,7 +86,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 	const height = positionLocal.y;
 	const baseWear = oneMinus(smoothstep(0, BASE_WEAR_HEIGHT, height)).mul(0.3);
 	const heightPatina = smoothstep(PATINA_HEIGHT[0], PATINA_HEIGHT[1], height).mul(0.1);
-	const dusty = smoothstep(0.55, 0.9, normalWorld.y).mul(TREAD_DUST);
+	const dusty = mix(float(TREAD_DUST * 0.45), smoothstep(0.55, 0.9, normalWorld.y).mul(TREAD_DUST), resolved);
 	const weathered = mix(core, color(MASONRY_PALETTE.patina), heightPatina);
 	const coreFinal = mix(
 		mix(mix(weathered, color(MASONRY_PALETTE.mortar), joint.mul(0.6)), color(GROUND_PALETTE.sandLight), dusty),
@@ -124,7 +144,17 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 		.mul(select(roughStone, float(RELIEF_DEPTH), float(RELIEF_DEPTH * 0.25)))
 		.mul(reliefFade)
 		.sub(joint.mul(RELIEF_DEPTH * 1.5));
-	material.normalNode = surfaceGradientNormal(relief);
+	const facing = select(
+		abs(positionLocal.x).greaterThan(abs(positionLocal.z)),
+		vec3(sign(positionLocal.x), 0, 0),
+		vec3(0, 0, sign(positionLocal.z))
+	);
+	const faceNormal = cameraViewMatrix.mul(
+		vec4(normalize(facing.mul(FACE_SLOPE_SIN).add(vec3(0, FACE_SLOPE_COS, 0))), 0)
+	).xyz;
+	material.normalNode = normalize(mix(faceNormal, surfaceGradientNormal(relief), resolved));
+	const filterShadow = Fn(([shadow]: [Node<'float'>]) => mix(float(STEP_SHADOW_MEAN), shadow, resolved));
+	material.receivedShadowNode = filterShadow as unknown as () => Node;
 	material.metalnessNode = select(stone.greaterThan(STONE.pyramidion - 0.5), float(0.82), float(0));
 	return material;
 }

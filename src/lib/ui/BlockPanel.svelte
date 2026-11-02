@@ -67,10 +67,11 @@ const name = $derived(ROYAL_NAMES[engineState.target].value);
 
 <aside
 	id="block-controls-panel"
-	class="papyrus custom-scrollbar fixed top-32 right-4 left-4 z-20 hidden max-h-[calc(100svh-12rem)] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:top-20 sm:left-auto sm:block sm:max-h-[calc(100svh-11.5rem)] sm:w-84"
+	class="papyrus custom-scrollbar touch-pan-y fixed top-32 right-4 left-4 z-20 max-h-[calc(100svh-12rem)] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:top-20 sm:left-auto sm:block sm:max-h-[calc(100svh-11.5rem)] sm:w-84 {mobileOpen
+		? 'block'
+		: 'hidden'}"
 	aria-label="Deconstruction controls"
 	data-lenis-prevent
-	class:block={mobileOpen}
 >
 	<div class="frieze h-[7px]" aria-hidden="true"></div>
 	<div class="p-5">

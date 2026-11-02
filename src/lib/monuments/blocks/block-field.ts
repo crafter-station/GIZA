@@ -39,6 +39,7 @@ import {
 	type WebGPURenderer
 } from 'three/webgpu';
 import type { BlockInfo } from '../../app/state.ts';
+import { MASONRY_PALETTE } from '../../materials/masonry-palette.ts';
 import { createChamferedBoxGeometry } from './geometry.ts';
 import { type BlockLayout, CORE_SEED_OFFSET } from './layout.ts';
 
@@ -53,7 +54,7 @@ const DRIFT = 0.6;
 const STIFFNESS = 22;
 const SETTLE_SECONDS = WAVE_SECONDS + JITTER_SECONDS + RISE_SECONDS + 1.5;
 const DAMPING = 2 * Math.sqrt(STIFFNESS);
-const STONE = 0xc9a97a;
+const STONE = MASONRY_PALETTE.coreLight;
 const GLOW = 0xffb46a;
 export const ANTICIPATION_SECONDS = 0.6;
 const FIELD_RADIUS = 14;

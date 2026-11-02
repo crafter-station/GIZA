@@ -880,6 +880,11 @@ Bloque 16 implementado (`src/lib/materials/ashlar.ts`, `src/lib/data/workers-tow
 - **Bloque 3**: con la sillería, los templos y las mastabas ya no son cajas lisas. Quedan pendientes la oclusión de contacto en juntas y bases, y revisar de cerca el revestimiento de Tura de la reconstrucción.
 - **Verificación**: `pnpm check` y Biome limpios; capturas de las mastabas del Cementerio Oriental, del muro del Cuervo y de la ciudad en el capítulo «Then and now», sin errores en consola. Sin tests automáticos, a petición del propietario.
 
+Corrección de la «capa blanca» en Keops (revisión del propietario):
+- **Causa principal**: durante el benchmark de calidad se mostraba el campo de bloques de la deconstrucción, más claro que la sillería, en lugar de la pirámide. Ahora el benchmark mide la escena tal como se ve por defecto, y el tono de los bloques usa `MASONRY_PALETTE.coreLight`, para que al deconstruir no cambie de color. La cima blanca de Kefrén es real: es su revestimiento de Tura conservado.
+- **Moiré de las hiladas a distancia**: cuando una hilada ocupa menos de 1,5–4 píxeles (medido con `fwidth`), el material de sillería funde con su valor medio el tono por hilada, las juntas, el polvo de los escalones, la normal (pasa a la de la pendiente de la cara, 52°) y la autosombra de los escalones (0,82).
+- **Queda un aliasing geométrico tenue**: los propios escalones son más finos que un píxel, y también influye algo el AO de pantalla. Adelantar el LOD liso a unos 700 m lo eliminaría, pero el dron vuela en esa franja y produciría saltos; queda como opción.
+
 Ajustes tras la revisión del propietario:
 - **Moverse en «Explorar libremente»**: el paneo de OrbitControls era en el plano de la pantalla, así que con la cámara casi horizontal no se podía avanzar sobre la meseta. Ahora se panea paralelo al suelo (`screenSpacePanning = false`) y la rueda acerca hacia el cursor (`zoomToCursor`). Además, las flechas del teclado desplazan la cámara; escuchan en el lienzo, que es enfocable, para no interferir con la navegación por teclado de los controles de Bits UI.
 - **Pirámides de las reinas**:
@@ -907,3 +912,12 @@ Implementado:
 - Punto de interés «Basalt court of Khufu’s temple» en la lista existente de Bits UI, con vuelo al patio, fuente ARCE y explicación expresa del carácter interpretativo. La Esfinge no cambia.
 - Verificación: `pnpm check` sin errores ni advertencias y Biome limpio en los archivos de este sector; diagnóstico de geometría finita, contención dentro del sector y liberación de sus cuatro geometrías y dos materiales compartidos. No se añadieron tests automáticos.
 - Revisión de navegador: WebGPU alto y WebGL2 medio, vistas cercanas y vuelo desde el punto de interés, sin errores de consola. En esta máquina, la vista del patio registró 16,7 ms de mediana (WebGPU alto: p95 17,4 ms; WebGL2 medio: p95 17,1 ms). Son muestras de 240 fotogramas con vsync y trabajo concurrente, no una certificación en móviles o gráficas integradas. No se repitió la suite E2E global.
+
+### 13.2. Personas y vida cotidiana
+
+Primer conjunto junto a las panaderías de la ciudad existente: molienda de grano, preparación de pan y transporte de vasijas. Fuentes: [AERA, Feeding Pyramid Workers](https://aeraweb.org/feeding-pyramid-workers/) y [AERA, Lost City](https://aeraweb.org/projects/lost-city/). Las tareas se basan en la evidencia de producción alimentaria; la apariencia, las poses, el número de personas y la disposición del taller son interpretativos.
+
+- Figuras articuladas con proporciones humanas, rostros sencillos, vestimenta de lino y utensilios; geometría y materiales compartidos, sin descargas externas.
+- Animación en el bucle existente, limitada por distancia y calidad; movimiento reducido conserva poses estáticas. Nada se anima fuera de la zona visible.
+- Presencia ligada a la reconstrucción de la ciudad y a su nuevo punto de interés «Daily life: bread and grain», con encuadre a escala humana y fuentes.
+- Comprobar que personajes y utensilios se apoyan en el suelo, que no atraviesan edificios, que las tareas se entienden y que funcionan WebGPU y WebGL2.
