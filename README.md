@@ -1,5 +1,5 @@
 <div align="center">
-  <img width="45%" alt="Giza" src="static/images/pyramid-sign.webp" />
+<img width="1647" height="912" alt="Captura de pantalla 2026-11-02 001015" src="https://github.com/user-attachments/assets/52086cc3-45bf-4862-a302-44e39808f9e2" />
 
   <img src="https://img.shields.io/badge/Svelte-5-FF3E00?logo=svelte&logoColor=white" alt="Svelte 5" /> <img src="https://img.shields.io/badge/SvelteKit-3-FF3E00?logo=svelte&logoColor=white" alt="SvelteKit 3" /> <img src="https://img.shields.io/badge/three.js-r187-000000?logo=three.js&logoColor=white" alt="three.js r187" /> <img src="https://img.shields.io/badge/WebGPU-TSL-005A9C" alt="WebGPU + TSL" /> <img src="https://img.shields.io/badge/TypeScript-6-3178C6?logo=typescript&logoColor=white" alt="TypeScript 6" /> <img src="https://img.shields.io/badge/Tailwind-v4-38BDF8?logo=tailwindcss&logoColor=white" alt="Tailwind v4" /> <img src="https://img.shields.io/badge/pnpm-11-F69220?logo=pnpm&logoColor=white" alt="pnpm 11" /> <img src="https://img.shields.io/badge/Deploy-Vercel-000000?logo=vercel&logoColor=white" alt="Deploy on Vercel" />
 </div>
