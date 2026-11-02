@@ -9,6 +9,7 @@ import { type CameraKey, type CameraPose, createPose, sampleTrack, type Vec3 } f
 
 const FAR_JUMP_CHAPTERS = 2;
 const RETURN_SECONDS = 1.2;
+const FOCUS_ARC = 0.22;
 
 export class TourDirector {
 	private readonly lenis: Lenis;
@@ -18,8 +19,11 @@ export class TourDirector {
 	private returning: gsap.core.Tween | null = null;
 	private published = { t: -1, chapter: -1, mode: '', drone: false };
 	private drone: { center: Vec3; start: number | null; still: boolean } | null = null;
+	private focusing: gsap.core.Tween | null = null;
 	private readonly stopDrone = () => {
 		this.drone = null;
+		this.focusing?.kill();
+		this.focusing = null;
 		this.publish();
 	};
 	t = 0;
@@ -50,6 +54,10 @@ export class TourDirector {
 		return chapterIndexAt(this.t, this.chapterCount);
 	}
 
+	get droneFlying(): boolean {
+		return this.drone !== null;
+	}
+
 	get isFree(): boolean {
 		return this.mode === 'free';
 	}
@@ -61,7 +69,7 @@ export class TourDirector {
 			this.t = this.lenis.progress * this.chapterCount;
 		}
 		if (this.mode === 'free' && this.drone) this.applyDrone(time);
-		else if (this.mode === 'free') this.controls.update(dt);
+		else if (this.mode === 'free' && !this.focusing) this.controls.update(dt);
 		else if (this.fixedPose) this.applyFixedPose(this.fixedPose);
 		else if (!this.returning) this.applyPose(this.t);
 		this.applyShake(time);
@@ -88,9 +96,45 @@ export class TourDirector {
 		this.publish();
 	}
 
+	focus(position: Vec3, target: Vec3, seconds: number): void {
+		this.enterFree();
+		this.drone = null;
+		this.focusing?.kill();
+		const fromPosition = this.camera.position.clone();
+		const fromTarget = this.controls.target.clone();
+		const toPosition = new Vector3(...position);
+		const toTarget = new Vector3(...target);
+		const lift = fromPosition.distanceTo(toPosition) * FOCUS_ARC;
+		const state = { progress: 0 };
+		const apply = () => {
+			this.camera.position.lerpVectors(fromPosition, toPosition, state.progress);
+			this.camera.position.y += Math.sin(state.progress * Math.PI) * lift;
+			this.controls.target.lerpVectors(fromTarget, toTarget, state.progress);
+			this.camera.lookAt(this.controls.target);
+		};
+		if (seconds <= 0) {
+			state.progress = 1;
+			apply();
+			this.publish();
+			return;
+		}
+		this.focusing = gsap.to(state, {
+			progress: 1,
+			duration: seconds,
+			ease: 'power3.inOut',
+			onUpdate: apply,
+			onComplete: () => {
+				this.focusing = null;
+			}
+		});
+		this.publish();
+	}
+
 	exitFree(): void {
 		if (this.mode === 'tour') return;
 		this.drone = null;
+		this.focusing?.kill();
+		this.focusing = null;
 		this.mode = 'tour';
 		this.controls.enabled = false;
 		sampleTrack(this.keys, this.t, this.pose);
@@ -116,6 +160,7 @@ export class TourDirector {
 
 	dispose(): void {
 		this.controls.removeEventListener('start', this.stopDrone);
+		this.focusing?.kill();
 		this.shaking?.kill();
 		this.returning?.kill();
 		this.lenis.destroy();

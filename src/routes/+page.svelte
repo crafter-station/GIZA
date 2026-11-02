@@ -16,10 +16,12 @@ import {
 	siteUrl
 } from '#lib/app/site.ts';
 import { engineState, tourState } from '#lib/app/state.ts';
+import { BLOCK_TARGETS } from '#lib/data/block-targets.ts';
 import { KHAFRE, KHUFU, MENKAURE } from '#lib/data/pyramids.ts';
 import type { Engine } from '#lib/engine/engine.ts';
 import { CHAPTERS } from '#lib/tour/chapters.ts';
 import BlockPanel from '#lib/ui/BlockPanel.svelte';
+import HotspotLayer from '#lib/ui/HotspotLayer.svelte';
 import Inspector from '#lib/ui/Inspector.svelte';
 import LightingControls from '#lib/ui/LightingControls.svelte';
 import Loader from '#lib/ui/Loader.svelte';
@@ -52,6 +54,15 @@ const ready = $derived(engine !== null && $engineState.status === 'ready');
 const chapter = $derived(CHAPTERS[$tourState.chapter]);
 const mode = $derived($tourState.mode);
 const showBlockPanel = $derived(mode === 'free' ? !$tourState.drone : chapter.blockActions);
+
+$effect(() => {
+	if (mode === 'tour' && $engineState.hotspot !== null) engine?.focusHotspot(null);
+});
+
+$effect(() => {
+	if (ready && mode === 'tour' && $engineState.target !== 'khufu' && !$engineState.switchingTarget)
+		void engine?.setTarget('khufu');
+});
 const SCROLL_HINT_SPAN = 0.15;
 let tourEntryT = $state<number | null>(null);
 const showScrollHint = $derived(
@@ -241,10 +252,19 @@ onMount(() => {
 			onbuild={(progress) => engine?.setBuild(progress)}
 			onramp={(ramp) => engine?.setRamp(ramp)}
 			onorigins={(enabled) => engine?.setOrigins(enabled)}
+			ontarget={(id) => void engine?.setTarget(id)}
+			canChooseTarget={mode === 'free'}
 		/>
 	{/if}
 	{#if $engineState.inspecting}
-		<Inspector block={$engineState.inspecting} onclose={() => engine?.inspect(null)} />
+		<Inspector
+			block={$engineState.inspecting}
+			target={BLOCK_TARGETS[$engineState.target]}
+			onclose={() => engine?.inspect(null)}
+		/>
+	{/if}
+	{#if mode === 'free' && !$tourState.drone}
+		<HotspotLayer active={$engineState.hotspot} disabled={!ready} onfocus={(id) => engine?.focusHotspot(id)} />
 	{/if}
 	<TourNav tour={$tourState} disabled={!ready} ongo={goTo} ontogglefree={toggleFree} />
 	{#if showScrollHint}

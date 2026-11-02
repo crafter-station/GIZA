@@ -1,4 +1,5 @@
 import { writable } from 'svelte/store';
+import type { BlockTargetId } from '../data/block-targets.ts';
 import type { RampId } from '../data/construction.ts';
 import type { Backend, Tier } from './quality.ts';
 
@@ -27,6 +28,9 @@ export interface EngineState {
 	ramp: RampId | null;
 	origins: boolean;
 	sound: boolean;
+	target: BlockTargetId;
+	switchingTarget: boolean;
+	hotspot: string | null;
 	forceField: boolean;
 	collapsed: boolean;
 	error: string | null;
@@ -49,6 +53,9 @@ export const INITIAL_ENGINE_STATE: EngineState = {
 	ramp: 'spiral',
 	origins: false,
 	sound: false,
+	target: 'khufu',
+	switchingTarget: false,
+	hotspot: null,
 	forceField: false,
 	collapsed: false,
 	error: null
@@ -64,3 +71,13 @@ export interface TourState {
 }
 
 export const tourState = writable<TourState>({ t: 0, chapter: 0, mode: 'tour', drone: false });
+
+export interface HotspotMarker {
+	id: string;
+	number: number;
+	x: number;
+	y: number;
+	occluded: boolean;
+}
+
+export const hotspotMarkers = writable<HotspotMarker[]>([]);

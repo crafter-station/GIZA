@@ -1,9 +1,15 @@
 <script lang="ts">
-import { Button, Slider, Toggle } from 'bits-ui';
+import { Button, RadioGroup, Slider, Toggle } from 'bits-ui';
 import type { EngineState } from '../app/state.ts';
 import { ROYAL_NAMES } from '../content/hieroglyphs.ts';
+import {
+	BLOCK_TARGET_IDS,
+	BLOCK_TARGETS,
+	type BlockTargetId,
+	isBlockTargetId,
+	SCHEMATIC_COURSE
+} from '../data/block-targets.ts';
 import type { RampId } from '../data/construction.ts';
-import { KHUFU } from '../data/pyramids.ts';
 import ConstructionTools from './ConstructionTools.svelte';
 import Cartouche from './egypt/Cartouche.svelte';
 
@@ -18,6 +24,8 @@ interface Props {
 	onbuild: (progress: number | null) => void;
 	onramp: (ramp: RampId) => void;
 	onorigins: (enabled: boolean) => void;
+	ontarget: (id: BlockTargetId) => void;
+	canChooseTarget: boolean;
 }
 
 let {
@@ -30,14 +38,17 @@ let {
 	oncollapse,
 	onbuild,
 	onramp,
-	onorigins
+	onorigins,
+	ontarget,
+	canChooseTarget
 }: Props = $props();
-const COURSES = 201;
+const target = $derived(BLOCK_TARGETS[state.target]);
+const COURSES = $derived(target.courses.length);
 const xrayValue = $derived(state.xray ?? COURSES);
 const block = $derived(state.selected ?? state.hovered);
 const deconstructed = $derived(state.blockMode === 'deconstructed');
 const format = (value: number, digits = 2) => value.toLocaleString('en-US', { maximumFractionDigits: digits });
-const name = ROYAL_NAMES.khufu.value;
+const name = $derived(ROYAL_NAMES[state.target].value);
 </script>
 
 <aside
@@ -48,19 +59,53 @@ const name = ROYAL_NAMES.khufu.value;
 	<div class="frieze h-[7px]" aria-hidden="true"></div>
 	<div class="p-5">
 		<div class="flex items-start gap-4">
-			<Cartouche glyphs={name.glyphs} name="Khufu" transliteration={name.transliteration} />
+			<Cartouche glyphs={name.glyphs} name={target.name} transliteration={name.transliteration} />
 			<div class="min-w-0">
-				<p class="text-[10px] font-semibold tracking-[0.28em] text-ochre uppercase">Great Pyramid · G1</p>
-				<h2 class="mt-1 font-display text-[1.7rem] leading-none font-semibold">Khufu, block by block</h2>
+				<p class="text-[10px] font-semibold tracking-[0.28em] text-ochre uppercase">{target.label}</p>
+				<h2 class="mt-1 font-display text-[1.7rem] leading-none font-semibold">{target.name}, block by block</h2>
 				<p class="mt-2 text-xs leading-snug text-ink/70">
 					<span class="font-display text-lg font-semibold text-ink"
-						>≈ {format(KHUFU.blockCount.value / 1e6, 1)} million</span
+						>≈ {format(target.blockEstimate.value / 1e6, target.blockEstimate.value < 1e6 ? 2 : 1)} million</span
 					>
 					blocks estimated · {format(state.blockCount, 0)} shown: the outer layer block by block, the core in
 					superblocks of ≈ {format(state.coreRatio, 0)} blocks
 				</p>
 			</div>
 		</div>
+
+		{#if !target.coursesMeasured}
+			<p class="mt-2 text-[11px] leading-snug text-ink/60">
+				<span class="font-semibold text-ochre">Schematic courses.</span>
+				No measured course table of {target.name}
+				has been transcribed, so its courses are drawn {format(SCHEMATIC_COURSE.value)} m thick, the mean of Khufu’s;
+				the block total is derived from its volume.
+			</p>
+		{/if}
+
+		<RadioGroup.Root
+			class="mt-4 grid grid-cols-3 gap-1.5"
+			value={state.target}
+			disabled={!canChooseTarget || state.switchingTarget || state.status !== 'ready'}
+			onValueChange={(value) => {
+				if (isBlockTargetId(value)) ontarget(value);
+			}}
+			aria-label="Pyramid to take apart"
+		>
+			{#each BLOCK_TARGET_IDS as id (id)}
+				<RadioGroup.Item
+					value={id}
+					class="flex flex-col items-center gap-1 rounded-sm border border-ink/25 px-1 py-1.5 text-[11px] font-semibold transition hover:bg-papyrus-deep disabled:cursor-not-allowed disabled:opacity-40 data-[state=checked]:border-lapis data-[state=checked]:bg-lapis/10 data-[state=checked]:text-lapis"
+				>
+					<span class="glyph text-base leading-none" aria-hidden="true">{ROYAL_NAMES[id].value.glyphs}</span>
+					{BLOCK_TARGETS[id].name}
+				</RadioGroup.Item>
+			{/each}
+		</RadioGroup.Root>
+		{#if state.switchingTarget}
+			<p class="mt-1.5 text-[11px] text-ink/60" aria-live="polite">Cutting the blocks of {target.name}…</p>
+		{:else if canChooseTarget}
+			<p class="mt-1.5 text-[11px] text-ink/55">You can also click a pyramid in the scene.</p>
+		{/if}
 
 		<div class="mt-4 grid grid-cols-2 gap-2">
 			<Button.Root
@@ -99,8 +144,8 @@ const name = ROYAL_NAMES.khufu.value;
 				<dl class="mt-2 grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 text-sm">
 					<dt class="text-ink/60">{block.kind === 'core' ? 'Courses' : 'Course'}</dt>
 					<dd class="font-medium">
-						{block.kind === 'core' ? `${block.course}–${Math.min(block.course + 9, 201)}` : block.course}
-						of 201 standing
+						{block.kind === 'core' ? `${block.course}–${Math.min(block.course + 9, COURSES)}` : block.course}
+						of {COURSES} standing
 					</dd>
 					{#if block.kind === 'core'}
 						<dt class="text-ink/60">Stands for</dt>

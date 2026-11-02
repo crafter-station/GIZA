@@ -637,8 +637,8 @@ La imagen de referencia del propietario (vista aérea al atardecer con bruma dor
 | **10. Cielo y luz rasante** ✅ | Velo alto de cirros o polvo con rayos crepusculares más marcados al amanecer y al ocaso; disco solar velado; sombras de nubes lentas sobre la meseta (mapa de sombra de nubes a baja resolución, como en Open Water) | Los rayos y las sombras de nubes se ven en los capítulos de luz baja sin parpadeo; desactivables en nivel bajo |
 | **12. Vida discreta** ✅ | Pocas aves lejanas (milanos planeando) como sprites con animación por vértice; remolinos de polvo ocasionales que reutilizan el sistema de motas; nada de bucles llamativos | Aportan escala sin distraer; se apagan con movimiento reducido y en nivel bajo |
 | **13. Sombra de horizonte del terreno** ✅ | Mapa de horizonte precalculado del DEM (una vez, en el worker de terreno) para oscurecer valles y la cantera con el sol bajo más allá del alcance de las cascadas CSM | Al amanecer los wadis y la cantera quedan en sombra a varios kilómetros, como en la referencia; sin coste por fotograma apreciable |
-| **14. Deconstruir las tres pirámides** ⬜ | Selección de una pirámide objetivo (Keops, Kefrén o Micerinos) para todo el sistema de bloques: deconstruir, rayos X con corte, campo de fuerza, Inspector, derrumbe, construir con rampas y vista por origen. Ver el diseño debajo | Las tres pirámides se pueden deconstruir y reensamblar sin fugas de memoria ni pérdida de rendimiento; las cifras de Kefrén y Micerinos que no estén medidas se rotulan como estimación; Keops se sigue viendo y comportando igual |
-| **15. Anotaciones (hotspots) con vuelo de cámara** ⬜ | Puntos de interés numerados sobre la Esfinge, las pirámides y otros objetos; al pulsar uno, la cámara vuela con una interpolación suave hasta un encuadre configurado y orbita alrededor de ese punto, como las anotaciones de Sketchfab. Ver el diseño debajo | Cada anotación enfoca su objeto en 1–3,5 s sin saltos ni atravesar monumentos; los marcadores siguen al objeto, se atenúan si quedan ocultos y no tapan el texto; todo se puede usar con teclado y lector de pantalla; con movimiento reducido el cambio es un corte con fundido |
+| **14. Deconstruir las tres pirámides** ✅ | Selección de una pirámide objetivo (Keops, Kefrén o Micerinos) para todo el sistema de bloques: deconstruir, rayos X con corte, campo de fuerza, Inspector, derrumbe, construir con rampas y vista por origen. Ver el diseño debajo | Las tres pirámides se pueden deconstruir y reensamblar sin fugas de memoria ni pérdida de rendimiento; las cifras de Kefrén y Micerinos que no estén medidas se rotulan como estimación; Keops se sigue viendo y comportando igual |
+| **15. Anotaciones (hotspots) con vuelo de cámara** ✅ | Puntos de interés numerados sobre la Esfinge, las pirámides y otros objetos; al pulsar uno, la cámara vuela con una interpolación suave hasta un encuadre configurado y orbita alrededor de ese punto, como las anotaciones de Sketchfab. Ver el diseño debajo | Cada anotación enfoca su objeto en 1–3,5 s sin saltos ni atravesar monumentos; los marcadores siguen al objeto, se atenúan si quedan ocultos y no tapan el texto; todo se puede usar con teclado y lector de pantalla; con movimiento reducido el cambio es un corte con fundido |
 
 Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después el 14 y el 15. El propietario aprobó todos los bloques salvo el 11, que queda fuera; se hacen de uno en uno.
 
@@ -753,3 +753,49 @@ Bloque 12 implementado (`src/lib/world/life/birds.ts`, `dust-devils.ts`; conecta
   - Usan un sistema propio y pequeño en vez de reutilizar las motas, porque las motas están ligadas a una caja alrededor de la cámara.
 - Ambos se desactivan en nivel bajo y con movimiento reducido. Son una ilustración del ambiente, no un censo de fauna.
 - **Verificación**: `pnpm check` y Biome limpios; captura con milanos visibles y sin errores en la consola (los errores restantes venían de recargas de la otra sesión). La aparición de los remolinos no se pudo encuadrar en la captura, porque nacen en dirección aleatoria. Sin tests automáticos, a petición del propietario.
+
+Bloque 14 implementado (`src/lib/data/block-targets.ts`, motor, `BlockPanel.svelte`, `ConstructionTools.svelte`, `Inspector.svelte`, `director.ts`):
+- **Datos** (`BLOCK_TARGETS`):
+  - Keops conserva sus 201 hiladas medidas.
+  - Kefrén y Micerinos usan **hiladas esquemáticas** de 0,68 m, la media de las de Keops (`SCHEMATIC_COURSE`), hasta su altura actual: 200 y 89 hiladas.
+  - Sus totales de bloques son **derivados** del volumen entre el volumen medio de un bloque de Keops: ≈ 1,96 M y ≈ 0,21 M.
+  - La base de Micerinos se toma como la media de sus dos lados (102,2 y 104,6 m), porque la disposición de bloques supone una base cuadrada.
+  - El panel muestra estos rótulos de esquema y derivado.
+- **Motor**:
+  - `setTarget(id)` reensambla y apaga las herramientas (rayos X, construir, origen, física, Inspector).
+  - Cambia la pirámide oculta por el campo de bloques, recalcula las hiladas y su volumen acumulado, y recrea rampas, casco de revestimiento y polvo de juntas con la forma del objetivo.
+  - Genera la nueva disposición en el worker y, en modo libre, vuela la cámara hasta la pirámide.
+  - Ya no queda código fijado a Keops salvo sus interiores, que solo se muestran con Keops (Kefrén y Micerinos necesitan fuentes antes de modelar sus cámaras).
+- **Selección**:
+  - En «Explorar libremente», con un selector de tres cartuchos (`RadioGroup` de Bits UI) o con un clic sobre la pirámide en la escena (raycast contra los LOD).
+  - En el recorrido guiado se vuelve a Keops, porque los capítulos de bloques son de Keops.
+- **Vuelo de cámara reutilizable**: `director.focus(posición, objetivo, segundos)` interpola con un arco elevado (`power3.inOut`) y lo cancela cualquier gesto. Es la base del bloque 15.
+- **Error encontrado y corregido**: compilar en caliente (`compileAsync` y el calentamiento del pipeline) mientras el bucle de render ya corre producía errores de validación de WebGPU («Attachment state … is not compatible»). Ahora, con el bucle en marcha, la compilación es perezosa al primer dibujado. Esto también protege el cambio de calidad tras el benchmark.
+- **Interfaz**: el panel, la línea de tiempo y el Inspector usan el nombre, el cartucho, las hiladas y los totales de la pirámide activa. Los años de obra y la mano de obra solo se muestran para Keops, porque no hay fuente para las otras.
+- **Pendiente**: la vista por origen de Micerinos no colorea todavía sus 16 hiladas de granito en los bloques; solo muestra el casco y la leyenda.
+- **Verificación**: `pnpm check` y Biome limpios; dos ciclos completos Kefrén → Micerinos → Keops → deconstruir sin errores en la consola, y capturas de Kefrén y Micerinos deconstruyéndose. Sin tests automáticos, a petición del propietario.
+
+Bloque 15 implementado (`src/lib/data/hotspots.ts`, `src/lib/engine/hotspots.ts`, `src/lib/ui/HotspotLayer.svelte`, `director.focus`):
+- **11 anotaciones** con texto en inglés y fuentes (`Fact`). Los anclajes salen de datos existentes:
+  1. La Esfinge (`SPHINX`, `SPHINX_PLACEMENT`).
+  2. La entrada original de Keops (17 m de altura, 7,9 m al este, hilada 19; `KHUFU_OPENINGS`).
+  3. El túnel de al-Mamún.
+  4. Los restos del revestimiento.
+  5. Los fosos de barcas (plano de Lepsius).
+  6. La calzada de Keops.
+  7. El Cementerio Oriental (centro de las 84 mastabas del GIS).
+  8. El revestimiento superviviente de Kefrén.
+  9. El monolito sin terminar (`QUARRY_TRACE`, posición aproximada y así rotulada).
+  10. El granito de Micerinos.
+  11. La brecha de 1196.
+- Cada anotación tiene un encuadre (distancia, rumbo y elevación respecto al anclaje) que se resuelve con la posición real de las pirámides y la altura del terreno; la cámara nunca queda bajo el suelo.
+- **Vuelo de cámara**: al pulsar un marcador o elegir en la lista, `engine.focusHotspot(id)` detiene el dron y vuela con `director.focus`.
+  - El vuelo es un arco elevado con `power3.inOut` y dura entre 1 y 3,5 s según la distancia.
+  - Al llegar, OrbitControls queda centrado en el anclaje para orbitar y hacer zoom, y cualquier gesto cancela el vuelo.
+  - Con movimiento reducido, el cambio es un corte.
+- **Marcadores**: botones numerados (Bits UI) situados con la proyección que publica el motor en el store `hotspotMarkers`, solo cuando cambian.
+  - La oclusión se comprueba 10 veces por segundo en la CPU, contra los volúmenes analíticos de las tres pirámides y el perfil del terreno, en lugar de lanzar rayos contra mallas grandes. Los ocultos se ven al 35 %.
+  - Se ocultan fuera de pantalla o a más de 2,6 km.
+- **Tarjeta** no modal con «Punto n de 11», título, texto, rótulo de estimación si procede, fuentes y anterior, siguiente y cerrar. La **lista «Points of interest»** (`Popover` de Bits UI) es la alternativa con teclado.
+- **Cambio respecto al diseño**: en el recorrido guiado las anotaciones se ocultan por completo, en vez de mostrar las del capítulo, para no competir con las tarjetas de capítulo ni con el scroll. También se ocultan mientras vuela el dron.
+- **Verificación**: `pnpm check` y Biome limpios. En el navegador: los marcadores aparecen tras detener el dron (los ocultos, atenuados), el vuelo a la entrada de Keops deja los marcadores 2 y 3 sobre la entrada y el túnel modelados, y la consola no tiene errores. Sin tests automáticos, a petición del propietario.

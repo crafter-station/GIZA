@@ -6,8 +6,9 @@ import play from '@iconify-icons/lucide/play';
 import rotateCcw from '@iconify-icons/lucide/rotate-ccw';
 import { Button, Select, Slider, Toggle } from 'bits-ui';
 import gsap from 'gsap';
-import { onDestroy } from 'svelte';
+import { onDestroy, untrack } from 'svelte';
 import type { EngineState } from '../app/state.ts';
+import { BLOCK_TARGETS, courseTopsOf } from '../data/block-targets.ts';
 import {
 	BUILD_TIMELINE,
 	courseAtProgress,
@@ -17,8 +18,6 @@ import {
 	type RampId,
 	STONE_ORIGINS
 } from '../data/construction.ts';
-import { KHUFU_SURVIVING_COURSES_M } from '../data/khufu-courses.ts';
-import { KHUFU } from '../data/pyramids.ts';
 
 interface Props {
 	state: EngineState;
@@ -31,10 +30,13 @@ let { state: engine, onbuild, onramp, onorigins }: Props = $props();
 
 const STEPS = 1000;
 const SECONDS_PER_YEAR = 1;
-const { years, blocks, workforce } = BUILD_TIMELINE.value;
-const cumulative = cumulativeCourseVolume(KHUFU_SURVIVING_COURSES_M, KHUFU.baseSide.value, KHUFU.originalHeight.value);
-let standing = 0;
-const courseTops = KHUFU_SURVIVING_COURSES_M.map((thickness) => (standing += thickness));
+const UNDATED_PLAY_SECONDS = 20;
+const { workforce } = BUILD_TIMELINE.value;
+const target = $derived(BLOCK_TARGETS[engine.target]);
+const years = $derived(target.buildYears);
+const blocks = $derived(target.blockEstimate.value);
+const cumulative = $derived(cumulativeCourseVolume(target.courses, target.baseSide, target.originalHeight));
+const courseTops = $derived(courseTopsOf(target.courses));
 
 const playhead = { progress: 0 };
 let tween: gsap.core.Tween | null = null;
@@ -62,7 +64,7 @@ function toggle() {
 	playing = true;
 	tween = gsap.to(playhead, {
 		progress: 1,
-		duration: (1 - playhead.progress) * years * SECONDS_PER_YEAR,
+		duration: (1 - playhead.progress) * (years === null ? UNDATED_PLAY_SECONDS : years * SECONDS_PER_YEAR),
 		ease: 'none',
 		onUpdate: () => onbuild(playhead.progress),
 		onComplete: stop
@@ -73,6 +75,11 @@ function reset() {
 	stop();
 	onbuild(null);
 }
+
+$effect(() => {
+	engine.target;
+	untrack(stop);
+});
 
 onDestroy(() => {
 	tween?.kill();
@@ -131,16 +138,24 @@ onDestroy(() => {
 	</div>
 
 	<dl class="grid grid-cols-2 gap-x-4 gap-y-1 text-sm" aria-live="off" data-testid="build-counters">
-		<dt class="text-ink/60">Year of Khufu</dt>
-		<dd class="font-medium tabular-nums">≈ {format(Math.max(1, Math.ceil(progress * years)))} of {years}</dd>
+		{#if years !== null}
+			<dt class="text-ink/60">Year of {target.name}</dt>
+			<dd class="font-medium tabular-nums">≈ {format(Math.max(1, Math.ceil(progress * years)))} of {years}</dd>
+		{/if}
 		<dt class="text-ink/60">Blocks laid</dt>
 		<dd class="font-medium tabular-nums">≈ {format(progress * blocks)}</dd>
 		<dt class="text-ink/60">Courses</dt>
 		<dd class="font-medium tabular-nums">{format(Math.floor(course))} · {format(height, 1)} m</dd>
-		<dt class="text-ink/60">Workforce</dt>
-		<dd class="font-medium tabular-nums">{format(workforce.min)}–{format(workforce.max)}</dd>
+		{#if target.id === 'khufu'}
+			<dt class="text-ink/60">Workforce</dt>
+			<dd class="font-medium tabular-nums">{format(workforce.min)}–{format(workforce.max)}</dd>
+		{/if}
 	</dl>
-	<p class="text-[11px] leading-snug text-ink/60">{BUILD_TIMELINE.note}</p>
+	<p class="text-[11px] leading-snug text-ink/60">
+		{years === null
+			? `No dated building time or workforce is published for ${target.name}; courses rise in order of the volume they hold, and the block total is derived.`
+			: BUILD_TIMELINE.note}
+	</p>
 
 	<div>
 		<Select.Root

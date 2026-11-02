@@ -5,6 +5,7 @@ import {
 	CapsuleGeometry,
 	Mesh,
 	MeshStandardNodeMaterial,
+	type Object3D,
 	PerspectiveCamera,
 	Raycaster,
 	Scene,
@@ -16,10 +17,17 @@ import type { Flags } from '../app/flags.ts';
 import { type Backend, clampTier, initialTier, TIER_SETTINGS, type Tier, tierAfterBenchmark } from '../app/quality.ts';
 import { type EngineState, engineState } from '../app/state.ts';
 import { Soundscape } from '../audio/soundscape.ts';
+import {
+	BLOCK_TARGET_IDS,
+	BLOCK_TARGETS,
+	type BlockTarget,
+	type BlockTargetId,
+	courseTopsOf,
+	isBlockTargetId
+} from '../data/block-targets.ts';
 import { courseAtProgress, cumulativeCourseVolume, RAMP_DRAWING, type RampId } from '../data/construction.ts';
-import { KHUFU_SURVIVING_COURSES_M } from '../data/khufu-courses.ts';
 import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
-import { DERIVED, KHUFU } from '../data/pyramids.ts';
+import { DERIVED } from '../data/pyramids.ts';
 import { createInteriorMaterials } from '../materials/interior.ts';
 import { createLimestoneMaterial } from '../materials/limestone.ts';
 import { createMasonryMaterial } from '../materials/masonry.ts';
@@ -60,6 +68,7 @@ import { flattenFootprints } from '../world/terrain/shape.ts';
 import { loadHeightmap, Terrain } from '../world/terrain/terrain.ts';
 import { ValleyLandscape } from '../world/valley/landscape.ts';
 import { FrameStats } from './frame-stats.ts';
+import { HotspotTracker } from './hotspots.ts';
 import { GpuPicker } from './picking.ts';
 import { AtmospherePipeline } from './render-pipeline.ts';
 
@@ -77,6 +86,8 @@ export interface Engine {
 	setOrigins(enabled: boolean): void;
 	setSound(enabled: boolean): void;
 	startDrone(): void;
+	setTarget(id: BlockTargetId): Promise<void>;
+	focusHotspot(id: string | null): void;
 	setForceField(enabled: boolean): void;
 	inspect(index: number | null): void;
 	collapse(): Promise<void>;
@@ -94,6 +105,9 @@ const SUN_REFERENCE_INTENSITY = 3.4;
 const SAND_HISS_HEIGHT = 120;
 const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
 const QUARRY_SEED = 2760;
+const TARGET_VIEW_DISTANCE = 1.9;
+const TARGET_VIEW_HEIGHT = 0.75;
+const TARGET_FLIGHT_SECONDS = 2.4;
 const BIRD_SEED = 1149;
 const VALLEY_SAND_EDGE = 450;
 const PYRAMID_CLEARANCE = 170;
@@ -106,12 +120,16 @@ const THERMALS: readonly (readonly [number, number])[] = [
 	[-450, 1250]
 ];
 
-const KHUFU_SHAPE = {
-	baseSide: KHUFU.baseSide.value,
-	originalHeight: KHUFU.originalHeight.value,
-	courses: KHUFU_SURVIVING_COURSES_M,
-	coreInset: 1.2
-};
+const CORE_INSET = 1.2;
+
+function shapeOf(target: BlockTarget) {
+	return {
+		baseSide: target.baseSide,
+		originalHeight: target.originalHeight,
+		courses: target.courses,
+		coreInset: CORE_INSET
+	};
+}
 
 function patch(partial: Partial<EngineState>): void {
 	engineState.update((state) => ({ ...state, ...partial }));
@@ -188,6 +206,13 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		return object;
 	});
 	const khufuVolume = pyramidObjects[placedPyramids.findIndex((placed) => placed.id === 'khufu')];
+	const volumeOf = (id: BlockTargetId) => pyramidObjects[placedPyramids.findIndex((placed) => placed.id === id)];
+	let target: BlockTarget = BLOCK_TARGETS.khufu;
+	let targetVolume = volumeOf(target.id);
+	const hotspots = new HotspotTracker(
+		BLOCK_TARGET_IDS.map((id) => ({ id, position: volumeOf(id).position })),
+		groundAt
+	);
 
 	const camera = new PerspectiveCamera(45, 1, 1, 20_000);
 	const controls = new OrbitControls(camera, canvas);
@@ -281,12 +306,6 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	scene.add(torches.group, torches.flames, ...torches.lights);
 	const motes = new DustMotes(TIER_SETTINGS[tier].dustMotes);
 	scene.add(motes.mesh);
-	const jointDust = new JointDust(TIER_SETTINGS[tier].jointDust, {
-		baseSide: KHUFU_SHAPE.baseSide,
-		height: KHUFU_SHAPE.originalHeight
-	});
-	jointDust.mesh.position.copy(khufuVolume.position);
-	scene.add(jointDust.mesh);
 	const lively = tier !== 'low' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
 	const birds = lively
 		? createBirds(
@@ -308,7 +327,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		const daylight = Math.min(environment.sun.intensity / SUN_REFERENCE_INTENSITY, 1);
 		torches.update(camera.position, night);
 		motes.step(renderer, dt, camera.position, environment.sunDirection, daylight);
-		jointDust.step(renderer, dt, 0.25 + daylight * 0.75);
+		dressing.jointDust.step(renderer, dt, 0.25 + daylight * 0.75);
 		dustDevils?.update(dt, camera.position, daylight * (1 - night));
 		if (!soundscape) return;
 		const height = camera.position.y - groundAt(camera.position.x, camera.position.z);
@@ -341,7 +360,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		publish('tier', tier);
 		patch({ tier, progress: progressFrom, step: `Cutting blocks (${tier})` });
 		const layout = await requestLayout(worker, {
-			shape: KHUFU_SHAPE,
+			shape: shapeOf(target),
 			targetCount: TIER_SETTINGS[tier].blockTarget,
 			rows: 2,
 			seed: 2560,
@@ -364,7 +383,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		field = new BlockField(layout);
 		field.mesh.castShadow = true;
 		field.mesh.receiveShadow = true;
-		field.placeAt(khufuVolume.position.x, khufuVolume.position.y, khufuVolume.position.z);
+		field.placeAt(targetVolume.position.x, targetVolume.position.y, targetVolume.position.z);
 		field.setDeconstructed(wasDeconstructed);
 		if (cuts) {
 			field.xrayCourse.value = cuts.xray;
@@ -376,7 +395,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		resize();
 		patch({ blockCount: layout.count, coreRatio: layout.blocksPerCoreCell, hovered: null, selected: null });
 		patch({ progress: progressFrom + 0.3, step: 'Compiling shaders' });
-		await renderer.compileAsync(scene, camera);
+		if (!looping) await renderer.compileAsync(scene, camera);
 		field.step(renderer, 0);
 		if (pipelineTier !== tier) {
 			pipeline.dispose();
@@ -384,10 +403,11 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			pipeline = new AtmospherePipeline(renderer, scene, camera, environment, tier, flags.noAo);
 			pipelineTier = tier;
 		}
-		await pipeline.warmup(renderer);
+		if (!looping) await pipeline.warmup(renderer);
 		await yieldToMain();
 	};
 
+	let looping = false;
 	let last = -1;
 	let benchmarking = !flags.tier;
 	let warmupFrames = 0;
@@ -399,37 +419,43 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	interior.position.copy(khufuVolume.position);
 	interior.visible = false;
 	scene.add(interior);
-	const courseTops: number[] = [];
-	KHUFU_SURVIVING_COURSES_M.reduce((sum, value) => {
-		courseTops.push(sum + value);
-		return sum + value;
-	}, 0);
+	let courseTops = courseTopsOf(target.courses);
+	let courseVolumes = cumulativeCourseVolume(target.courses, target.baseSide, target.originalHeight);
 	const heightOfCourse = (course: number) => {
 		const whole = Math.floor(course);
 		if (whole >= courseTops.length) return Infinity;
 		const below = whole === 0 ? 0 : courseTops[whole - 1];
 		return below + (courseTops[whole] - below) * (course - whole);
 	};
-	const courseVolumes = cumulativeCourseVolume(
-		KHUFU_SURVIVING_COURSES_M,
-		KHUFU_SHAPE.baseSide,
-		KHUFU_SHAPE.originalHeight
-	);
-	const ramps = new RampModel({ ...KHUFU_SHAPE, ...RAMP_DRAWING.value });
-	ramps.mesh.position.copy(khufuVolume.position);
-	scene.add(ramps.mesh);
-	const casing = createCasingGhost(KHUFU_SHAPE.baseSide, KHUFU_SHAPE.originalHeight);
-	casing.position.copy(khufuVolume.position);
-	scene.add(casing);
+	const dressTarget = () => {
+		const ramps = new RampModel({ ...shapeOf(target), ...RAMP_DRAWING.value });
+		const casing = createCasingGhost(target.baseSide, target.originalHeight);
+		const jointDust = new JointDust(TIER_SETTINGS[tier].jointDust, {
+			baseSide: target.baseSide,
+			height: target.originalHeight
+		});
+		for (const object of [ramps.mesh, casing, jointDust.mesh]) {
+			object.position.copy(targetVolume.position);
+			scene.add(object);
+		}
+		return { ramps, casing, jointDust };
+	};
+	const undressTarget = (dressed: ReturnType<typeof dressTarget>) => {
+		for (const object of [dressed.ramps.mesh, dressed.casing, dressed.jointDust.mesh]) scene.remove(object);
+		dressed.ramps.dispose();
+		disposeCasingGhost(dressed.casing);
+		dressed.jointDust.dispose();
+	};
+	let dressing = dressTarget();
 	let ramp: RampId | null = 'spiral';
 	let buildProgress: number | null = null;
 	const updateRamps = () => {
 		const course = buildProgress === null ? null : courseAtProgress(courseVolumes, buildProgress);
 		field?.setBuild(course);
-		ramps.update(course === null ? null : ramp, course === null ? 0 : heightOfCourse(course));
+		dressing.ramps.update(course === null ? null : ramp, course === null ? 0 : heightOfCourse(course));
 	};
 	const updateInterior = (showBlocks: boolean) => {
-		const open = showBlocks && !!field && (field.deconstructed || field.sectioned);
+		const open = target.interior && showBlocks && !!field && (field.deconstructed || field.sectioned);
 		interior.visible = open;
 		if (!open || !field) return;
 		const cut = heightOfCourse(Math.min(Math.round(field.xrayCourse.value), field.buildCourse.value));
@@ -481,7 +507,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		updateEra();
 		gsap.updateRoot(time / 1000);
 		const showBlocks = blocksVisible();
-		khufuVolume.visible = !showBlocks;
+		targetVolume.visible = !showBlocks;
 		if (field) {
 			field.mesh.visible = showBlocks;
 			updateInterior(showBlocks);
@@ -492,6 +518,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		}
 		environment.update(director.t);
 		terrain.updateSun(environment.sunDirection);
+		hotspots.update(camera, canvas.clientWidth, canvas.clientHeight, director.isFree && !director.droneFlying, time);
 		updateAtmosphere(dt);
 		pipeline.render(director.t);
 		stats?.update();
@@ -566,7 +593,12 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		if (forceField) return;
 		if (!start || Math.hypot(event.clientX - start.x, event.clientY - start.y) > CLICK_TOLERANCE_PX) return;
 		const index = await pickAt(event);
-		if (index === undefined || !field) return;
+		if (index === undefined) {
+			const chosen = director.isFree ? pyramidAt(event) : null;
+			if (chosen) void setTarget(chosen);
+			return;
+		}
+		if (!field) return;
 		field.selected.value = index ?? NO_BLOCK;
 		patch({ selected: index === null ? null : field.info(index) });
 	};
@@ -577,6 +609,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	gsap.ticker.remove(gsap.updateRoot);
 	await buildField(tier, 0.2);
 	renderer.setAnimationLoop(frame);
+	looping = true;
 	publish('quality', benchmarking ? 'measuring' : 'locked');
 	publish('engine', 'ready');
 	patch({ backend, status: 'ready', progress: 1, step: 'Ready' });
@@ -617,6 +650,73 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			return null;
 		});
 
+	let switching = false;
+	const resetTools = () => {
+		if (!field) return;
+		stopCollapse();
+		inspecting = null;
+		field.inspected.value = NO_BLOCK;
+		scale.visible = false;
+		field.setDeconstructed(false);
+		field.setXray(null);
+		field.section.value = 0;
+		buildProgress = null;
+		updateRamps();
+		dressing.casing.visible = false;
+		patch({
+			blockMode: 'assembled',
+			inspecting: null,
+			selected: null,
+			hovered: null,
+			xray: null,
+			build: null,
+			origins: false
+		});
+	};
+	const focusTarget = (seconds: number) => {
+		const { x, y, z } = targetVolume.position;
+		const away = new Vector3(camera.position.x - x, 0, camera.position.z - z);
+		if (away.lengthSq() < 1) away.set(1, 0, 1);
+		away.normalize().multiplyScalar(target.baseSide * TARGET_VIEW_DISTANCE);
+		director.focus(
+			[x + away.x, y + target.originalHeight * TARGET_VIEW_HEIGHT, z + away.z],
+			[x, y + target.originalHeight * 0.3, z],
+			seconds
+		);
+	};
+	const setTarget = async (id: BlockTargetId) => {
+		if (id === target.id || switching) return;
+		switching = true;
+		patch({ switchingTarget: true });
+		resetTools();
+		targetVolume.visible = true;
+		undressTarget(dressing);
+		target = BLOCK_TARGETS[id];
+		targetVolume = volumeOf(id);
+		courseTops = courseTopsOf(target.courses);
+		courseVolumes = cumulativeCourseVolume(target.courses, target.baseSide, target.originalHeight);
+		dressing = dressTarget();
+		try {
+			await buildField(tier, 1);
+			if (director.isFree) focusTarget(reducedMotion ? 0 : TARGET_FLIGHT_SECONDS);
+		} finally {
+			switching = false;
+			patch({ target: id, switchingTarget: false, status: 'ready', progress: 1, step: 'Ready' });
+		}
+	};
+	const pyramidAt = (event: PointerEvent): BlockTargetId | null => {
+		const rect = canvas.getBoundingClientRect();
+		pointer.set(
+			((event.clientX - rect.left) / rect.width) * 2 - 1,
+			-((event.clientY - rect.top) / rect.height) * 2 + 1
+		);
+		ray.setFromCamera(pointer, camera);
+		const candidates = BLOCK_TARGET_IDS.map((candidate) => volumeOf(candidate));
+		const [hit] = ray.intersectObjects(candidates, true);
+		let object: Object3D | null = hit?.object ?? null;
+		while (object && !isBlockTargetId(object.name)) object = object.parent;
+		return object && isBlockTargetId(object.name) ? object.name : null;
+	};
 	const setMode = (deconstructed: boolean) => {
 		if (!field) return;
 		if (reducedMotion) {
@@ -641,7 +741,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				{ value: 1, duration: ANTICIPATION_SECONDS / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }
 			);
 			director.shake(ANTICIPATION_SECONDS, 0.35);
-			jointDust.trigger(renderer);
+			dressing.jointDust.trigger(renderer);
 			soundscape?.rumble(ANTICIPATION_SECONDS + 1.6);
 		}
 		field.setDeconstructed(deconstructed);
@@ -670,6 +770,12 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			updateRamps();
 			patch({ ramp: next });
 		},
+		setTarget,
+		focusHotspot: (id) => {
+			const flight = id === null ? null : hotspots.flight(id, camera.position);
+			if (flight) director.focus(flight.camera.toArray(), flight.anchor.toArray(), reducedMotion ? 0 : flight.seconds);
+			patch({ hotspot: flight ? id : null });
+		},
 		startDrone: () => {
 			const khafre = pyramidObjects[placedPyramids.findIndex((placed) => placed.id === 'khafre')];
 			const center = khufuVolume.position
@@ -690,7 +796,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		},
 		setOrigins: (enabled) => {
 			if (field) field.section.value = enabled ? 1 : 0;
-			casing.visible = enabled;
+			dressing.casing.visible = enabled;
 			patch({ origins: enabled });
 		},
 		setForceField: (enabled) => {
@@ -788,14 +894,13 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				});
 			}
 			masonry.dispose();
-			ramps.dispose();
+			undressTarget(dressing);
+			hotspots.dispose();
 			soundscape?.dispose();
 			torches.dispose();
 			motes.dispose();
-			jointDust.dispose();
 			dustDevils?.dispose();
 			if (birds) disposeBirds(birds);
-			disposeCasingGhost(casing);
 			(interior.children[0] as Mesh | undefined)?.geometry.dispose();
 			for (const material of Object.values(interiorMaterials)) material.dispose();
 			scale.geometry.dispose();
