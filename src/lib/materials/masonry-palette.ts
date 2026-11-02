@@ -8,5 +8,6 @@ export const MASONRY_PALETTE = {
 	graniteLight: 0xe2d0c4,
 	graniteWeathered: 0x9d9087,
 	mortar: 0xc9b9a0,
-	recess: 0x2e2722
+	recess: 0x2e2722,
+	pyramidion: 0xf3bd55
 } as const;

@@ -48,6 +48,7 @@ import { Environment } from '../world/atmosphere/environment.ts';
 import type { LightingMode } from '../world/atmosphere/lighting.ts';
 import { AncientReconstruction } from '../world/era/reconstruction.ts';
 import { tourEra } from '../world/era/timeline.ts';
+import { createBedrockBlocks, quarryBedrock, quarryRocks } from '../world/props/quarry-rocks.ts';
 import { scatterRocks } from '../world/props/rock-scatter.ts';
 import { createRockField, disposeRockField } from '../world/props/rocks.ts';
 import { Torches, torchPositions } from '../world/props/torches.ts';
@@ -89,6 +90,7 @@ const TORCH_SPACING = 40;
 const SUN_REFERENCE_INTENSITY = 3.4;
 const SAND_HISS_HEIGHT = 120;
 const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
+const QUARRY_SEED = 2760;
 
 const KHUFU_SHAPE = {
 	baseSide: KHUFU.baseSide.value,
@@ -225,6 +227,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		rockMaterial
 	);
 	scene.add(rocks);
+	const quarryBlocks = createRockField(quarryRocks(QUARRY_SEED), groundAt, rockMaterial);
+	quarryBlocks.name = 'quarry-blocks';
+	const quarryBedrockBlocks = createBedrockBlocks(quarryBedrock(QUARRY_SEED), groundAt, rockMaterial);
+	scene.add(quarryBlocks, quarryBedrockBlocks);
 	const ruinMaterials = {
 		limestone: createLimestoneMaterial(),
 		pit: createPitMaterial(),
@@ -739,6 +745,9 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			terrain.dispose();
 			rockMaterial.dispose();
 			disposeRockField(rocks);
+			disposeRockField(quarryBlocks);
+			quarryBedrockBlocks.geometry.dispose();
+			quarryBedrockBlocks.dispose();
 			disposeComplex(complex);
 			valley.dispose();
 			reconstruction.dispose();

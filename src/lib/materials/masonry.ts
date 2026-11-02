@@ -76,18 +76,27 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 	);
 
 	material.colorNode = select(
-		stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
-		vec3(coreFinal),
+		stone.greaterThan(STONE.pyramidion - 0.5),
+		color(MASONRY_PALETTE.pyramidion).rgb,
 		select(
-			stone.lessThan(STONE.granite - 0.5),
-			vec3(tura),
-			select(stone.lessThan(STONE.recess - 0.5), vec3(granite), color(MASONRY_PALETTE.recess).rgb)
+			stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
+			vec3(coreFinal),
+			select(
+				stone.lessThan(STONE.granite - 0.5),
+				vec3(tura),
+				select(stone.lessThan(STONE.recess - 0.5), vec3(granite), color(MASONRY_PALETTE.recess).rgb)
+			)
 		)
 	);
 	material.roughnessNode = select(
-		stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
-		float(0.93),
-		select(stone.lessThan(STONE.granite - 0.5), float(0.7), float(0.55))
+		stone.greaterThan(STONE.pyramidion - 0.5),
+		float(0.22),
+		select(
+			stone.lessThan(STONE.casing - 0.5).or(stone.greaterThan(STONE.roughCore - 0.5)),
+			float(0.93),
+			select(stone.lessThan(STONE.granite - 0.5), float(0.7), float(0.55))
+		)
 	);
+	material.metalnessNode = select(stone.greaterThan(STONE.pyramidion - 0.5), float(0.82), float(0));
 	return material;
 }

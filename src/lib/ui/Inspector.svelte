@@ -13,7 +13,7 @@ const volume = $derived(block.size[0] * block.size[1] * block.size[2]);
 </script>
 
 <section
-	class="papyrus fixed top-20 left-4 max-h-[calc(100svh-11.5rem)] w-80 overflow-y-auto overscroll-contain sm:left-6 rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)]"
+	class="papyrus custom-scrollbar fixed top-20 left-4 max-h-[calc(100svh-11.5rem)] w-80 overflow-y-auto overscroll-contain sm:left-6 rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)]"
 	aria-label="Block inspector"
 	data-lenis-prevent
 >

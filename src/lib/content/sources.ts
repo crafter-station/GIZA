@@ -109,6 +109,12 @@ export const SOURCES = {
 		year: 2026,
 		url: 'https://services1.arcgis.com/qN3V93cYGMKQCOxL/ArcGIS/rest/services/GIZA_Vectors_for_Web/FeatureServer'
 	},
+	aeraQuarry: {
+		author: 'Mark Lehner, Ancient Egypt Research Associates (AERA)',
+		title: 'The Great Pyramid Quarry (Giza Plateau Mapping Project)',
+		year: 2009,
+		url: 'https://aeraweb.org/great-pyramid-quarry/'
+	},
 	hoffleitWarren1991: {
 		author: 'Dorrit Hoffleit, Wayne H. Warren Jr.',
 		title: 'The Bright Star Catalogue, 5th Revised Edition (CDS V/50)',

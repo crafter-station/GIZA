@@ -40,6 +40,7 @@ import {
 import type { TerrainHeightmapMeta } from '../data/terrain.ts';
 import { DRIFT_SPEED, GUST_PERIOD_SECONDS, WIND_DIRECTION_XZ } from '../world/atmosphere/wind.ts';
 import { bedrockZoneNode, erosionHeightNode, fissureNode } from '../world/terrain/erosion.ts';
+import { quarryChannelsNode, quarryMaskNode, quarryOffsetNode } from '../world/terrain/quarry.ts';
 import { duneHeightNode, PLATFORM_DAMPING } from '../world/terrain/relief.ts';
 import type { ShapedTerrain } from '../world/terrain/shape.ts';
 import { SKIRT_DEPTH } from '../world/terrain/tiles.ts';
@@ -49,7 +50,10 @@ export const GROUND_PALETTE = {
 	sandDark: 0xc7915a,
 	gravel: 0xb8a387,
 	bedrockLight: 0xb9ae99,
-	bedrockDark: 0x806f5b
+	bedrockDark: 0x806f5b,
+	quarryFace: 0xd8cbb0,
+	quarryDebris: 0xd3c6ab,
+	tafla: 0xa89a83
 } as const;
 
 const WIND_DIRECTION = vec2(...WIND_DIRECTION_XZ);
@@ -101,7 +105,8 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 	const squareCenter = vec2(meta.center.x, meta.center.z);
 	const heightAt = (xz: Node<'vec2'>) => {
 		const ground = sampleGround(xz);
-		const measured = ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
+		const surface = ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
+		const measured = surface.add(quarryOffsetNode(xz));
 		const offset = abs(xz.sub(squareCenter)).sub(meta.halfExtent);
 		const beyond = smoothstep(0, HORIZON_BLEND, max(offset.x, offset.y));
 		const desert = oneMinus(smoothstep(VALLEY_EDGE[0], VALLEY_EDGE[1], xz.x));
@@ -141,7 +146,8 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 	const exposed = bedrockZoneNode(xz)
 		.mul(oneMinus(platform).pow(2))
 		.mul(smoothstep(-0.1, 0.18, macro).mul(0.75).add(0.2));
-	const steepRock = smoothstep(0.12, 0.3, slope);
+	const quarry = quarryMaskNode(xz);
+	const steepRock = max(smoothstep(0.12, 0.3, slope), quarry.mul(smoothstep(0.035, 0.11, slope)));
 	const rock = max(steepRock, exposed);
 	const strata = sin(positionWorld.y.mul((Math.PI * 2) / 1.4).add(macro.mul(2)))
 		.mul(0.5)
@@ -163,14 +169,32 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		.mul(oneMinus(rock), oneMinus(platform), gust.mul(0.6).add(0.4));
 	const drifting = sand.add(color(GROUND_PALETTE.sandLight).mul(drift.mul(0.09)));
 	const packed = mix(drifting, color(GROUND_PALETTE.gravel), platform.mul(0.55));
+	const debris = mix(
+		color(GROUND_PALETTE.quarryDebris),
+		color(GROUND_PALETTE.tafla),
+		smoothstep(0.45, 0.75, mx_noise_float(vec3(xz.div(26), 5.3)))
+	).mul(macro.mul(0.08).add(1));
+	const floorCover = quarry.mul(
+		smoothstep(-0.2, 0.35, mx_noise_float(vec3(xz.div(60), 9.1)))
+			.mul(0.7)
+			.add(0.15)
+	);
+	const quarried = mix(packed, debris, floorCover);
 	const bedrockPattern = mix(
 		saturate(macro.mul(0.5).add(0.5)),
 		saturate(strata.mul(0.6).add(macro.mul(0.25)).add(0.2)),
 		steepRock
 	);
-	const bedrock = mix(color(GROUND_PALETTE.bedrockDark), color(GROUND_PALETTE.bedrockLight), bedrockPattern);
+	const weathered = mix(color(GROUND_PALETTE.bedrockDark), color(GROUND_PALETTE.bedrockLight), bedrockPattern);
+	const bedrock = mix(
+		weathered,
+		color(GROUND_PALETTE.quarryFace).mul(bedrockPattern.mul(0.25).add(0.8)),
+		quarry.mul(0.6)
+	);
+	const viewDistance = distance(cameraPosition, positionWorld);
+	const channel = quarryChannelsNode(xz, viewDistance);
 	const fissure = fissureNode(xz).mul(oneMinus(smoothstep(30, 220, distance(cameraPosition, positionWorld))));
-	material.colorNode = mix(packed, bedrock.mul(oneMinus(fissure.mul(0.35))), rock);
+	material.colorNode = mix(quarried, bedrock.mul(oneMinus(fissure.mul(0.35))), rock).mul(oneMinus(channel.mul(0.28)));
 	material.roughnessNode = mix(float(0.97), float(0.88), rock);
 
 	const rippleFade = oneMinus(smoothstep(10, 65, distance(cameraPosition, positionWorld)))

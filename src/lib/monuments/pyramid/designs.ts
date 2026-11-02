@@ -110,7 +110,11 @@ export function pyramidDesigns(main: readonly PyramidVolume[]): PlacedDesign[] {
 			id: volume.id,
 			volume,
 			design:
-				volume.id === 'g3b' || volume.id === 'g3c' ? stepped(volume, 4, 3000 + index) : smooth(volume, 3000 + index),
+				volume.id === 'g3b' || volume.id === 'g3c'
+					? stepped(volume, 4, 3000 + index)
+					: smooth(volume, 3000 + index, {
+							...(['g1a', 'g1b', 'g1c'].includes(volume.id) ? { pyramidionHeight: 1.5 } : {})
+						}),
 			lodDistance: 900
 		}))
 	];

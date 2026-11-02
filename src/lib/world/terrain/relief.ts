@@ -3,6 +3,7 @@ import type { Node } from 'three/webgpu';
 import { sampleHeight, type TerrainHeightmapMeta } from '../../data/terrain.ts';
 import { erosionHeight } from './erosion.ts';
 import { valueNoise, valueNoiseNode } from './noise.ts';
+import { quarryOffset } from './quarry.ts';
 import type { ShapedTerrain } from './shape.ts';
 
 export const PLATFORM_DAMPING = 0.85;
@@ -28,11 +29,8 @@ export function createGroundSampler(
 ): (x: number, z: number) => number {
 	return (x, z) => {
 		const platform = sampleHeight(shaped.platformWeight, meta, x, z);
-		return (
-			sampleHeight(shaped.heights, meta, x, z) +
-			duneHeight(x, z) * (1 - PLATFORM_DAMPING * platform) +
-			erosionHeight(x, z, platform)
-		);
+		const surface = sampleHeight(shaped.heights, meta, x, z) + duneHeight(x, z) * (1 - PLATFORM_DAMPING * platform);
+		return surface + quarryOffset(x, z) + erosionHeight(x, z, platform);
 	};
 }
 

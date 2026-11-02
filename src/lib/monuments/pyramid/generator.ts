@@ -1,4 +1,4 @@
-export const STONE = { core: 0, casing: 1, granite: 2, recess: 3, roughCore: 4 } as const;
+export const STONE = { core: 0, casing: 1, granite: 2, recess: 3, roughCore: 4, pyramidion: 5 } as const;
 
 const SMOOTH_BAND = 4;
 
@@ -29,6 +29,7 @@ export interface PyramidDesign {
 	originalHeight: number;
 	courses: readonly number[] | null;
 	height?: number;
+	pyramidionHeight?: number;
 	coreInset: number;
 	concavity: number;
 	missingRate: number;
@@ -175,8 +176,8 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 			const bands = Math.max(1, Math.ceil(height / SMOOTH_BAND));
 			const columns = Math.max(4, Math.round(spanBase / design.segmentLength));
 			const bandY = (band: number) => (band * height) / bands;
-			const edge = (y: number, u: number) => (u * 2 - 1) * (halfAt(y, spanBase) - design.coreInset);
-			const surface = (y: number) => halfAt(y, depthBase) - design.coreInset;
+			const edge = (y: number, u: number) => (u * 2 - 1) * Math.max(halfAt(y, spanBase) - design.coreInset, 0);
+			const surface = (y: number) => Math.max(halfAt(y, depthBase) - design.coreInset, 0);
 			const notchAt = (column: number, band: number) => {
 				if (column < 0 || column >= columns || band < 0 || band >= bands) return null;
 				const y = (bandY(band) + bandY(band + 1)) / 2;
@@ -369,6 +370,29 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 			[1, 1, 1, 1],
 			(design.courses?.length ?? 1) - 1
 		);
+	}
+	if (design.pyramidionHeight) {
+		const baseY = height - design.pyramidionHeight;
+		const radiusX = Math.max(halfAt(baseY, design.baseX) - design.coreInset, 0);
+		const radiusZ = Math.max(halfAt(baseY, design.baseZ) - design.coreInset, 0);
+		for (const side of SIDES) {
+			const span = side.side === 'north' || side.side === 'south' ? radiusX : radiusZ;
+			const depth = side.side === 'north' || side.side === 'south' ? radiusZ : radiusX;
+			const point = (along: number, outward: number): [number, number, number] => [
+				side.tangent[0] * along + side.normal[0] * outward,
+				baseY,
+				side.tangent[1] * along + side.normal[1] * outward
+			];
+			const apex: [number, number, number] = [0, height, 0];
+			builder.quad(
+				[point(-span, depth), point(span, depth), apex, apex],
+				slopeNormal(side, side.side === 'north' || side.side === 'south' ? design.baseZ : design.baseX),
+				STONE.pyramidion,
+				[-span, span, 0, 0],
+				[baseY, baseY, height, height],
+				-1
+			);
+		}
 	}
 	return builder.build(height);
 }
