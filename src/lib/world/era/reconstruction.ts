@@ -11,6 +11,7 @@ import {
 	Vector3
 } from 'three/webgpu';
 import { type PyramidVolume, SPHINX_PLACEMENT } from '#lib/data/layout.ts';
+import { ASHLAR_STYLES, createAshlarMaterial } from '#lib/materials/ashlar.ts';
 import {
 	ESTIMATED_HEIGHTS,
 	PLAN_FEATURES,
@@ -69,7 +70,7 @@ export class AncientReconstruction {
 			shell.receiveShadow = true;
 			this.group.add(shell);
 		}
-		this.temple = new MeshStandardNodeMaterial({ color: 0xcfb88b, roughness: 0.92 });
+		this.temple = createAshlarMaterial(ASHLAR_STYLES.limestone);
 		this.temple.transparent = true;
 		this.temple.depthWrite = false;
 		this.temple.opacityNode = this.amount;

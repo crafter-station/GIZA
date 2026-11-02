@@ -8,6 +8,12 @@ export interface Source {
 }
 
 export const SOURCES = {
+	arceKhufuTemple: {
+		author: 'American Research Center in Egypt; Ancient Egypt Research Associates',
+		title: 'Great Pyramid Temple Conservation Project',
+		year: 2020,
+		url: 'https://arce.org/project/great-pyramid-temple-conservation-project/'
+	},
 	lehner1997: {
 		author: 'Mark Lehner',
 		title: 'The Complete Pyramids',
@@ -108,6 +114,12 @@ export const SOURCES = {
 		title: 'GIZA Vectors for Web (pyramids, shafts, Fourth Dynasty mastabas, mastabas; EPSG:32636)',
 		year: 2026,
 		url: 'https://services1.arcgis.com/qN3V93cYGMKQCOxL/ArcGIS/rest/services/GIZA_Vectors_for_Web/FeatureServer'
+	},
+	aeraWallOfTheCrow: {
+		author: 'Mark Lehner, Ancient Egypt Research Associates (AERA)',
+		title: 'Heit el-Ghurab: the Wall of the Crow and the Gallery Complex',
+		year: 2009,
+		url: 'https://aeraweb.org/?p=1167'
 	},
 	aeraQuarry: {
 		author: 'Mark Lehner, Ancient Egypt Research Associates (AERA)',

@@ -1,4 +1,7 @@
 <script lang="ts">
+import Icon from '@iconify/svelte';
+import menu from '@iconify-icons/lucide/menu';
+import x from '@iconify-icons/lucide/x';
 import { Button, RadioGroup, Slider, Toggle } from 'bits-ui';
 import type { EngineState } from '../app/state.ts';
 import { ROYAL_NAMES } from '../content/hieroglyphs.ts';
@@ -29,7 +32,7 @@ interface Props {
 }
 
 let {
-	state,
+	state: engineState,
 	ondeconstruct,
 	onreassemble,
 	onxray,
@@ -42,19 +45,32 @@ let {
 	ontarget,
 	canChooseTarget
 }: Props = $props();
-const target = $derived(BLOCK_TARGETS[state.target]);
+let mobileOpen = $state(false);
+const target = $derived(BLOCK_TARGETS[engineState.target]);
 const COURSES = $derived(target.courses.length);
-const xrayValue = $derived(state.xray ?? COURSES);
-const block = $derived(state.selected ?? state.hovered);
-const deconstructed = $derived(state.blockMode === 'deconstructed');
+const xrayValue = $derived(engineState.xray ?? COURSES);
+const block = $derived(engineState.selected ?? engineState.hovered);
+const deconstructed = $derived(engineState.blockMode === 'deconstructed');
 const format = (value: number, digits = 2) => value.toLocaleString('en-US', { maximumFractionDigits: digits });
-const name = $derived(ROYAL_NAMES[state.target].value);
+const name = $derived(ROYAL_NAMES[engineState.target].value);
 </script>
 
+<Button.Root
+	class="fixed top-20 right-4 z-30 grid size-11 place-items-center rounded-sm border border-gold/60 bg-lapis-deep/90 text-gold-light shadow-lg backdrop-blur-sm transition hover:bg-lapis focus-visible:ring-2 focus-visible:ring-gold-light sm:hidden"
+	aria-label={mobileOpen ? 'Close block controls' : 'Open block controls'}
+	aria-controls="block-controls-panel"
+	aria-expanded={mobileOpen}
+	onclick={() => (mobileOpen = !mobileOpen)}
+>
+	<Icon icon={mobileOpen ? x : menu} class="size-5" aria-hidden="true" />
+</Button.Root>
+
 <aside
-	class="papyrus custom-scrollbar fixed top-20 right-4 left-4 z-20 max-h-[42svh] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:left-auto sm:max-h-[calc(100svh-11.5rem)] sm:w-84"
+	id="block-controls-panel"
+	class="papyrus custom-scrollbar fixed top-32 right-4 left-4 z-20 max-h-[calc(100svh-12rem)] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:top-20 sm:left-auto sm:max-h-[calc(100svh-11.5rem)] sm:w-84"
 	aria-label="Deconstruction controls"
 	data-lenis-prevent
+	class:hidden={!mobileOpen}
 >
 	<div class="frieze h-[7px]" aria-hidden="true"></div>
 	<div class="p-5">
@@ -67,8 +83,8 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 					<span class="font-display text-lg font-semibold text-ink"
 						>≈ {format(target.blockEstimate.value / 1e6, target.blockEstimate.value < 1e6 ? 2 : 1)} million</span
 					>
-					blocks estimated · {format(state.blockCount, 0)} shown: the outer layer block by block, the core in
-					superblocks of ≈ {format(state.coreRatio, 0)} blocks
+					blocks estimated · {format(engineState.blockCount, 0)} shown: the outer layer block by block, the core in
+					superblocks of ≈ {format(engineState.coreRatio, 0)} blocks
 				</p>
 			</div>
 		</div>
@@ -84,8 +100,8 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 
 		<RadioGroup.Root
 			class="mt-4 grid grid-cols-3 gap-1.5"
-			value={state.target}
-			disabled={!canChooseTarget || state.switchingTarget || state.status !== 'ready'}
+			value={engineState.target}
+			disabled={!canChooseTarget || engineState.switchingTarget || engineState.status !== 'ready'}
 			onValueChange={(value) => {
 				if (isBlockTargetId(value)) ontarget(value);
 			}}
@@ -101,7 +117,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 				</RadioGroup.Item>
 			{/each}
 		</RadioGroup.Root>
-		{#if state.switchingTarget}
+		{#if engineState.switchingTarget}
 			<p class="mt-1.5 text-[11px] text-ink/60" aria-live="polite">Cutting the blocks of {target.name}…</p>
 		{:else if canChooseTarget}
 			<p class="mt-1.5 text-[11px] text-ink/55">You can also click a pyramid in the scene.</p>
@@ -110,7 +126,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 		<div class="mt-4 grid grid-cols-2 gap-2">
 			<Button.Root
 				class="group flex items-center justify-center gap-2 rounded-sm border border-gold bg-lapis px-3 py-2 text-sm font-semibold tracking-wide text-papyrus shadow-[inset_0_1px_0_rgb(232_205_134/0.4)] transition hover:bg-lapis-deep disabled:cursor-not-allowed disabled:opacity-40"
-				disabled={state.status !== 'ready' || deconstructed}
+				disabled={engineState.status !== 'ready' || deconstructed}
 				onclick={ondeconstruct}
 			>
 				<img
@@ -123,7 +139,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 			</Button.Root>
 			<Button.Root
 				class="rounded-sm border border-ink/40 bg-papyrus-deep/50 px-3 py-2 text-sm font-semibold tracking-wide text-ink transition hover:border-ink/70 hover:bg-papyrus-deep disabled:cursor-not-allowed disabled:opacity-40"
-				disabled={state.status !== 'ready' || !deconstructed}
+				disabled={engineState.status !== 'ready' || !deconstructed}
 				onclick={onreassemble}
 			>
 				Reassemble
@@ -134,10 +150,10 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 			<section
 				class="register mt-4 pt-3"
 				aria-live="polite"
-				aria-label={state.selected ? 'Selected block' : 'Block under the pointer'}
+				aria-label={engineState.selected ? 'Selected block' : 'Block under the pointer'}
 			>
 				<p class="text-[10px] font-semibold tracking-[0.28em] text-ochre uppercase">
-					{state.selected ? 'Selected' : 'Pointing at'}
+					{engineState.selected ? 'Selected' : 'Pointing at'}
 					{block.kind === 'core' ? 'core superblock' : 'block'}
 					· No. {format(block.index + 1, 0)}
 				</p>
@@ -173,7 +189,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 				<div class="flex items-center justify-between text-xs">
 					<span class="font-semibold tracking-wide">X-ray by course</span>
 					<span class="text-ink/65 tabular-nums">
-						{state.xray === null ? 'Off' : `Courses 1–${state.xray} shown`}
+						{engineState.xray === null ? 'Off' : `Courses 1–${engineState.xray} shown`}
 					</span>
 				</div>
 				<Slider.Root
@@ -182,7 +198,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 					max={COURSES}
 					step={1}
 					value={xrayValue}
-					disabled={state.status !== 'ready'}
+					disabled={engineState.status !== 'ready'}
 					onValueChange={(value) => onxray(value >= COURSES ? null : value)}
 					class="relative mt-2 flex h-5 w-full touch-none items-center select-none"
 					aria-label="Hide courses above"
@@ -200,41 +216,41 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 				<Toggle.Root
 					class="rounded-sm border border-ink/35 px-3 py-1.5 text-xs font-semibold tracking-wide transition data-[state=on]:border-lapis data-[state=on]:bg-lapis data-[state=on]:text-papyrus disabled:opacity-40"
 					disabled={!deconstructed}
-					pressed={state.forceField}
+					pressed={engineState.forceField}
 					onPressedChange={(pressed) => onforcefield(pressed)}
 				>
 					Force field
 				</Toggle.Root>
 				<Button.Root
 					class="rounded-sm border border-ink/35 px-3 py-1.5 text-xs font-semibold tracking-wide transition hover:bg-papyrus-deep disabled:opacity-40"
-					disabled={!deconstructed || !state.selected}
-					onclick={() => oninspect(state.inspecting ? null : (state.selected?.index ?? null))}
+					disabled={!deconstructed || !engineState.selected}
+					onclick={() => oninspect(engineState.inspecting ? null : (engineState.selected?.index ?? null))}
 				>
-					{state.inspecting ? 'Close inspector' : 'Inspect block'}
+					{engineState.inspecting ? 'Close inspector' : 'Inspect block'}
 				</Button.Root>
 			</div>
 			<Button.Root
 				class="rounded-sm border border-ochre/70 bg-ochre/10 px-3 py-1.5 text-xs font-semibold tracking-wide text-ochre transition hover:bg-ochre/20 disabled:opacity-40"
-				disabled={!deconstructed || state.collapsed}
+				disabled={!deconstructed || engineState.collapsed}
 				onclick={oncollapse}
 			>
-				{state.collapsed ? 'The top courses have fallen' : 'Collapse the top courses'}
+				{engineState.collapsed ? 'The top courses have fallen' : 'Collapse the top courses'}
 			</Button.Root>
-			{#if state.forceField}
+			{#if engineState.forceField}
 				<p class="text-[11px] text-ink/65">Drag across the floating blocks to push them aside.</p>
 			{/if}
 		</section>
 
-		<ConstructionTools {state} {onbuild} {onramp} {onorigins} />
+		<ConstructionTools state={engineState} {onbuild} {onramp} {onorigins} />
 
 		<dl class="mt-3 flex gap-2 text-[10px] tracking-wider text-ink/60 uppercase" data-testid="engine-info">
 			<div class="rounded-full border border-ink/15 px-2 py-0.5">
 				<dt class="sr-only">Backend</dt>
-				<dd>{state.backend ?? '-'}</dd>
+				<dd>{engineState.backend ?? '-'}</dd>
 			</div>
 			<div class="rounded-full border border-ink/15 px-2 py-0.5">
 				<dt class="sr-only">Quality</dt>
-				<dd>{state.tier ?? '-'}</dd>
+				<dd>{engineState.tier ?? '-'}</dd>
 			</div>
 		</dl>
 	</div>

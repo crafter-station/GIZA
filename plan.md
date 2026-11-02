@@ -593,8 +593,8 @@ Este trabajo complementa las fases 8 y 10. Se construye por escalas: el DEM fija
 | --- | --- | --- |
 | **1. Suelo de roca y arena** ✅ | Relieve erosionado de poca profundidad donde aflora la roca, fisuras y estratos en el material TSL; misma altura en CPU y GPU; protección de las plataformas y de la franja del valle | El suelo deja de verse uniforme a escala humana; cámara, rocas y monumentos no flotan ni se hunden; sin textura descargable ni nueva pasada de render |
 | **2. Huellas de cantera** ✅ | Cortes y terrazas de extracción en sectores aproximados al sur de Keops y hacia el Campo Central; bloques de descarte y transición al wadi | Siluetas y ubicación contrastadas con la cartografía arqueológica; trazado interpretativo rotulado, sin inventar una planta exacta |
-| **3. Piedra construida** ⬜ | Diferenciar caliza local, revestimiento fino de Tura, granito y mampostería con variación a escala de bloque y de detalle; revisar juntas, roturas, cantos y oclusión | Pirámides, templos y mastabas mantienen sus dimensiones y se leen de cerca y de lejos en «Antes» y «Ahora» |
-| **4. Vida y movimiento** ⬜ | Integrar con la fase 8 en curso: viento, polvo, sombras y pocas aves distantes si aportan escala; evitar duplicar sistemas de partículas | Movimiento sobrio, sin tapar el texto ni crear bucles de animación adicionales; calidad baja y movimiento reducido conservan legibilidad |
+| **3. Piedra construida** 🔄 | Diferenciar caliza local, revestimiento fino de Tura, granito y mampostería con variación a escala de bloque y de detalle; revisar juntas, roturas, cantos y oclusión | Pirámides, templos y mastabas mantienen sus dimensiones y se leen de cerca y de lejos en «Antes» y «Ahora» |
+| **4. Vida y movimiento** ✅ | Integrar con la fase 8 en curso: viento, polvo, sombras y pocas aves distantes si aportan escala; evitar duplicar sistemas de partículas | Movimiento sobrio, sin tapar el texto ni crear bucles de animación adicionales; calidad baja y movimiento reducido conservan legibilidad |
 | **5. Perfilado y revisión** ✅ | Capturas comparables, WebGPU y respaldo WebGL2, móvil, coste por nivel de calidad y limpieza de recursos | Las mejoras no rompen los presupuestos de §8 ni introducen errores de consola o regresiones de navegación |
 
 Base documental para el bloque 1: [AERA, geología de la Esfinge](https://aeraweb.org/geology-of-the-sphinx/) describe la caliza Mokkatam y las capas de dureza alterna; [Kawae y Kamei, *Geomorphological Aspects at the Giza Plateau*](https://gizamedia.rc.fas.harvard.edu/documents/kawae_jg_120_2011.pdf) documenta fisuras y vaguadas en la formación Maadi al sur y la cantera de Keops al sur de la pirámide; el [Giza Plateau Mapping Project](https://isac.uchicago.edu/sites/oi.uchicago.edu/files/uploads/shared/docs/Publications/Annual-Reports/2016-2017/AR-2016-2017-Giza-Plateau-Mapping.pdf) registra estratos, cortes y zonas de cantera. Ninguna de estas fuentes proporciona un mapa centimétrico del microrelieve añadido: su forma procedural es una representación visual, no una medición arqueológica.
@@ -639,6 +639,7 @@ La imagen de referencia del propietario (vista aérea al atardecer con bruma dor
 | **13. Sombra de horizonte del terreno** ✅ | Mapa de horizonte precalculado del DEM (una vez, en el worker de terreno) para oscurecer valles y la cantera con el sol bajo más allá del alcance de las cascadas CSM | Al amanecer los wadis y la cantera quedan en sombra a varios kilómetros, como en la referencia; sin coste por fotograma apreciable |
 | **14. Deconstruir las tres pirámides** ✅ | Selección de una pirámide objetivo (Keops, Kefrén o Micerinos) para todo el sistema de bloques: deconstruir, rayos X con corte, campo de fuerza, Inspector, derrumbe, construir con rampas y vista por origen. Ver el diseño debajo | Las tres pirámides se pueden deconstruir y reensamblar sin fugas de memoria ni pérdida de rendimiento; las cifras de Kefrén y Micerinos que no estén medidas se rotulan como estimación; Keops se sigue viendo y comportando igual |
 | **15. Anotaciones (hotspots) con vuelo de cámara** ✅ | Puntos de interés numerados sobre la Esfinge, las pirámides y otros objetos; al pulsar uno, la cámara vuela con una interpolación suave hasta un encuadre configurado y orbita alrededor de ese punto, como las anotaciones de Sketchfab. Ver el diseño debajo | Cada anotación enfoca su objeto en 1–3,5 s sin saltos ni atravesar monumentos; los marcadores siguen al objeto, se atenúan si quedan ocultos y no tapan el texto; todo se puede usar con teclado y lector de pantalla; con movimiento reducido el cambio es un corte con fundido |
+| **16. Ciudad de los constructores, templos y estructuras** ✅ | Sillería con hiladas y juntas para templos, mastabas y calzadas; muro del Cuervo; ciudad de Heit el-Ghurab en «Antes»; anotaciones nuevas | Las estructuras mantienen sus dimensiones; lo documentado y lo esquemático se distinguen en los datos y en las anotaciones |
 
 Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después el 14 y el 15. El propietario aprobó todos los bloques salvo el 11, que queda fuera; se hacen de uno en uno.
 
@@ -837,9 +838,71 @@ Bloque 5 implementado: perfilado, optimización y revisión.
 - **Tests**: 104 unitarios en verde, y el proyecto de componentes en navegador no tiene tests. La suite E2E de Chromium se interrumpió al cerrarse la sesión anterior y, a petición del propietario, no se volvió a lanzar. `quality.spec.ts` se actualizó al nuevo nivel inicial táctil, sin ejecutarlo.
 - **Límite conocido**: en gráficas integradas modestas el nivel bajo ronda los 15 fps. El siguiente paso sería precalcular en una textura la altura de detalle (dunas, crestas y cantera) en el worker del terreno, para que las normales no evalúen ruido por píxel.
 
+Estado de los bloques 3 y 4:
+- **Bloque 4 (vida y movimiento)**: cumplido con lo hecho en la Fase 8 y en el bloque 12.
+  - Viento: arena arrastrada en el suelo con rachas.
+  - Polvo: motas en los haces de luz y polvo de las juntas al deconstruir.
+  - Sombras: sombras de nubes y sombra de horizonte del terreno (bloque 13).
+  - Fauna y remolinos: milanos lejanos y remolinos de polvo ocasionales.
+  - Los remolinos usan un sistema pequeño propio porque las motas están ligadas a una caja alrededor de la cámara.
+  - Nada tapa el texto del DOM, y la vida se desactiva en nivel bajo y con movimiento reducido.
+- **Bloque 3 (piedra construida)**: hecho en parte.
+  - **Hecho**:
+    - pirámides con tono por hilada y bloque, juntas hundidas, relieve picado, desgaste de la base y pátina (bloque 9);
+    - revestimiento de Tura con vetas y granito con moteado (Fase 5);
+    - reinas como núcleos de mampostería por hiladas;
+    - roca madre de la cantera estratificada;
+    - sector del templo funerario de Keops con losas de basalto, hiladas de caliza, juntas geométricas, roturas y materiales propios (§13.1).
+  - **Falta**:
+    - extender la geometría detallada y las roturas a los demás templos y mastabas; la mejora del sector de Keops no completa todo el bloque;
+    - la oclusión de contacto específica en juntas y bases (ahora solo el AO de pantalla, que en nivel bajo está apagado);
+    - revisar el aspecto de la piedra en la vista «Antes» (revestimiento completo de Tura) de cerca y de lejos.
+
+Bloque 16 implementado (`src/lib/materials/ashlar.ts`, `src/lib/data/workers-town.ts`, `src/lib/world/era/workers-town.ts`, anotaciones):
+- **Sillería** (`createAshlarMaterial`): material TSL en coordenadas del mundo, sin texturas.
+  - En las caras verticales traza hiladas y bloques de longitud variable en cada hilada, con juntas hundidas mediante el gradiente de superficie (relieve que se desvanece entre 30 y 160 m). Cada bloque tiene su tono, y las caras superiores llevan polvo y la sombra de las nubes.
+  - Tres variantes:
+    - **caliza**: hiladas de 0,85 m y bloques de 1,1–2,2 m, para templos, mastabas, calzadas y el muro del Cuervo;
+    - **granito**: hiladas de 1,6 m y bloques de 2,2–4,2 m, para el templo del valle;
+    - **adobe**: ladrillos de 12 × 34 cm, para la ciudad.
+  - Sustituye a la caliza genérica y al granito de las ruinas del complejo, y a los templos de la reconstrucción «Antes».
+- **Muro del Cuervo** (`WALL_OF_THE_CROW`, establecido, AERA): 200 m de largo, 10 m de alto y 10 m de grosor en la base, con talud solo en las caras largas.
+  - La puerta mide 2,6 × 7 m y es un túnel bajo un dintel macizo. El muro se levanta en tramos de 20 m que siguen el terreno.
+  - Se ve en las dos épocas, porque sigue en pie.
+- **Ciudad de Heit el-Ghurab** (`WORKERS_TOWN`, establecido; `WORKERS_TOWN_LAYOUT`, **hipótesis**). Solo aparece en «Antes» y se funde con la época, porque se desmanteló tras Micerinos.
+  - Muro de recinto al oeste.
+  - Cuatro conjuntos de galerías: 10, 10, 9 y 10 edificios de 35 × 4,6 m, a ambos lados de la calle principal que lleva a la puerta.
+  - El Edificio Administrativo Real con diez silos.
+  - Seis panaderías, y los pueblos Occidental (22 casas) y Oriental (28 casas).
+  - La fuente da los componentes, el área (más de 7 ha) y la posición relativa (unos 400 m al sur de la Esfinge, al sureste del muro), pero no la planta. Las medidas de cada edificio, los techos y las posiciones exactas son visuales y así se rotulan.
+- **Anotaciones nuevas**: el muro del Cuervo y la ciudad de los constructores (13 en total). La de la ciudad explica que sus restos están enterrados y que la reconstrucción aparece en el capítulo «Then and now».
+- **Bloque 3**: con la sillería, los templos y las mastabas ya no son cajas lisas. Quedan pendientes la oclusión de contacto en juntas y bases, y revisar de cerca el revestimiento de Tura de la reconstrucción.
+- **Verificación**: `pnpm check` y Biome limpios; capturas de las mastabas del Cementerio Oriental, del muro del Cuervo y de la ciudad en el capítulo «Then and now», sin errores en consola. Sin tests automáticos, a petición del propietario.
+
 Ajustes tras la revisión del propietario:
 - **Moverse en «Explorar libremente»**: el paneo de OrbitControls era en el plano de la pantalla, así que con la cámara casi horizontal no se podía avanzar sobre la meseta. Ahora se panea paralelo al suelo (`screenSpacePanning = false`) y la rueda acerca hacia el cursor (`zoomToCursor`). Además, las flechas del teclado desplazan la cámara; escuchan en el lienzo, que es enfocable, para no interferir con la navegación por teclado de los controles de Bits UI.
 - **Pirámides de las reinas**:
   - G1-a/b/c y G3-a pasan de caras lisas con piramidión dorado a núcleos de mampostería por hiladas esquemáticas de 0,68 m (`SCHEMATIC_COURSE`), con bloques perdidos y erosión de aristas, sin piramidión.
   - G3-b/c conservan sus 4 plataformas documentadas, pero cada una está hecha de hiladas con caras verticales (nueva opción `stepHeight` del generador).
 - **Roca madre de la cantera**: cada bloque es ahora geometría propia en metros (`weathered-block.ts`), con estratos horizontales erosionados (capas de 0,45–0,85 m y surcos de hasta 0,3 m), aristas redondeadas irregulares y picado, todo fusionado en una sola malla. Es una forma procedural inspirada en la caliza estratificada de la formación Mokattam, no un levantamiento.
+
+### 13.1. Sector arqueológico: templo funerario de Keops ✅
+
+Primer sector del bloque 3, elegido después de revisar los bloques completados. Se conserva la implantación existente del templo; el detalle de las demás construcciones queda pendiente.
+
+1. Sustituir el pavimento monolítico por losas de basalto irregulares, con juntas, cantos biselados, piezas perdidas y una base de caliza visible.
+2. Descomponer los restos de muros existentes en hiladas de caliza con juntas físicas, coronaciones rotas y fragmentos al pie, dentro del sector.
+3. Dar a ambos materiales variación por pieza, rugosidad, picado fino y polvo; reutilizar la iluminación y la normal de relieve del proyecto.
+4. Fusionar geometrías por material, simplificar a distancia y liberar todos los recursos al cerrar la escena. Sin nuevas texturas descargables, luces ni pasadas.
+5. Añadir un punto de interés con fuente y rótulo de interpretación; revisar visualmente desde cerca y lejos en WebGPU y WebGL2, y comprobar tipos y formato.
+
+Fuentes: [AERA, Great Pyramid Temple](https://aeraweb.org/projects/great-pyramid-temple/) y [ARCE, conservación del templo](https://arce.org/project/great-pyramid-temple-conservation-project/). Documentan el pavimento irregular de basalto y su preparación sobre caliza. Las juntas, roturas, alturas conservadas y posiciones de fragmentos de esta escena son interpretativas: no reproducen un levantamiento piedra por piedra. No se añaden pilares completos, relieves inventados ni una planta nueva al estado actual.
+
+Implementado:
+- `khufu-temple.ts` sustituye únicamente los bloques etiquetados `khufu-temple` del complejo existente; mantiene sus dimensiones, implantación y exclusiones de cámara/objetos.
+- Pavimento de losas de contorno irregular, algunas fracturadas, con pérdidas que dejan ver la preparación de caliza. Muros con aparejo desplazado entre hiladas, juntas físicas, biseles, coronación rota y fragmentos apoyados en el terreno o en la losa que tienen debajo.
+- `archaeological-stone.ts`: dos materiales PBR/TSL con tono por piedra, polvo sobre caras superiores, rugosidad y relieve fino que se desvanece a distancia. Reutiliza las sombras de nubes y la normal por gradiente superficial. Sin imágenes, dependencias ni luces nuevas.
+- Dos mallas por nivel, 21 450 triángulos de cerca y 3 142 a distancia. El LOD cambia a 320 m con histéresis del 12 %; conserva las mismas losas y pérdidas del pavimento. Es un presupuesto de render, no una cifra arqueológica.
+- Punto de interés «Basalt court of Khufu’s temple» en la lista existente de Bits UI, con vuelo al patio, fuente ARCE y explicación expresa del carácter interpretativo. La Esfinge no cambia.
+- Verificación: `pnpm check` sin errores ni advertencias y Biome limpio en los archivos de este sector; diagnóstico de geometría finita, contención dentro del sector y liberación de sus cuatro geometrías y dos materiales compartidos. No se añadieron tests automáticos.
+- Revisión de navegador: WebGPU alto y WebGL2 medio, vistas cercanas y vuelo desde el punto de interés, sin errores de consola. En esta máquina, la vista del patio registró 16,7 ms de mediana (WebGPU alto: p95 17,4 ms; WebGL2 medio: p95 17,1 ms). Son muestras de 240 fotogramas con vsync y trabajo concurrente, no una certificación en móviles o gráficas integradas. No se repitió la suite E2E global.

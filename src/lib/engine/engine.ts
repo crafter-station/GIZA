@@ -28,10 +28,11 @@ import {
 import { courseAtProgress, cumulativeCourseVolume, RAMP_DRAWING, type RampId } from '../data/construction.ts';
 import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
 import { DERIVED } from '../data/pyramids.ts';
+import { ASHLAR_STYLES, createAshlarMaterial } from '../materials/ashlar.ts';
 import { createInteriorMaterials } from '../materials/interior.ts';
 import { createLimestoneMaterial } from '../materials/limestone.ts';
 import { createMasonryMaterial } from '../materials/masonry.ts';
-import { createBasaltMaterial, createGraniteMaterial, createPitMaterial } from '../materials/ruins.ts';
+import { createBasaltMaterial, createPitMaterial } from '../materials/ruins.ts';
 import { ANTICIPATION_SECONDS, BlockField, MAX_PHYSICS_BODIES, NO_BLOCK } from '../monuments/blocks/block-field.ts';
 import type { BlockLayout, BlockLayoutRequest } from '../monuments/blocks/layout.ts';
 import { createComplex, disposeComplex } from '../monuments/complex/complex.ts';
@@ -56,6 +57,7 @@ import { Environment } from '../world/atmosphere/environment.ts';
 import type { LightingMode } from '../world/atmosphere/lighting.ts';
 import { AncientReconstruction } from '../world/era/reconstruction.ts';
 import { tourEra } from '../world/era/timeline.ts';
+import { WorkersTown } from '../world/era/workers-town.ts';
 import { createBirds, disposeBirds } from '../world/life/birds.ts';
 import { DustDevils } from '../world/life/dust-devils.ts';
 import { createBedrockBlocks, quarryBedrock, quarryRocks } from '../world/props/quarry-rocks.ts';
@@ -276,16 +278,18 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const quarryBedrockBlocks = createBedrockBlocks(quarryBedrock(QUARRY_SEED), groundAt, rockMaterial);
 	scene.add(quarryBlocks, quarryBedrockBlocks);
 	const ruinMaterials = {
-		limestone: createLimestoneMaterial(),
+		limestone: createAshlarMaterial(ASHLAR_STYLES.limestone),
 		pit: createPitMaterial(),
 		basalt: createBasaltMaterial(),
-		granite: createGraniteMaterial()
+		granite: createAshlarMaterial(ASHLAR_STYLES.granite)
 	};
 	const complex = createComplex(complexLayout, groundAt, ruinMaterials);
 	scene.add(complex);
 	const valley = new ValleyLandscape(groundAt, tier);
 	const reconstruction = new AncientReconstruction(PYRAMIDS, platformOf, groundAt);
-	scene.add(valley.group, reconstruction.group);
+	const mudbrick = createAshlarMaterial(ASHLAR_STYLES.mudbrick);
+	const workersTown = new WorkersTown(groundAt, ruinMaterials.limestone, mudbrick);
+	scene.add(valley.group, reconstruction.group, workersTown.wall, workersTown.town);
 	let renderedEra = -1;
 	const updateEra = () => {
 		const amount = tourEra(director.t);
@@ -293,6 +297,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		if (Math.abs(amount - renderedEra) > 0.25) pipeline.resetHistory();
 		valley.setEra(amount);
 		reconstruction.setEra(amount);
+		workersTown.setEra(amount);
 		renderedEra = amount;
 		document.documentElement.dataset.era = String(Math.round(amount * 100));
 	};
@@ -897,6 +902,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			valley.dispose();
 			reconstruction.dispose();
 			for (const material of Object.values(ruinMaterials)) material.dispose();
+			workersTown.dispose();
+			mudbrick.dispose();
 			for (const object of pyramidObjects) {
 				object.traverse((child) => {
 					if ((child as Mesh).isMesh) (child as Mesh).geometry.dispose();

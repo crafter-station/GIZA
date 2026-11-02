@@ -13,6 +13,7 @@ export type RuinMaterial = 'limestone' | 'basalt' | 'granite' | 'pit';
 export type RuinSource = 'gis' | 'plan' | 'written';
 
 export interface RuinBlock {
+	sector?: 'khufu-temple';
 	x: number;
 	z: number;
 	width: number;
@@ -140,6 +141,7 @@ export function buildComplexLayout(seed = 2600): ComplexLayout {
 	const blocks: RuinBlock[] = [
 		{
 			...PLAN.khufuTemple,
+			sector: 'khufu-temple',
 			width: 40,
 			depth: 52,
 			height: HEIGHTS.pavement,
@@ -154,7 +156,7 @@ export function buildComplexLayout(seed = 2600): ComplexLayout {
 			HEIGHTS.templeWall * 0.75,
 			'limestone',
 			'plan'
-		),
+		).map((block) => ({ ...block, sector: 'khufu-temple' as const })),
 		...PLAN.khufuBoatPits.map((pit) => ({
 			x: (pit.minX + pit.maxX) / 2,
 			z: (pit.minZ + pit.maxZ) / 2,

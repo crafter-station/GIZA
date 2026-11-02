@@ -4,11 +4,13 @@ import {
 	Float32BufferAttribute,
 	Group,
 	InstancedMesh,
+	LOD,
 	type Material,
 	Matrix4,
 	Quaternion,
 	Vector3
 } from 'three/webgpu';
+import { createKhufuTemple, disposeKhufuTemple } from './khufu-temple.ts';
 import type { ComplexLayout, RuinBlock, RuinMaterial } from './layout.ts';
 
 const CAUSEWAY_STEP = 12;
@@ -86,9 +88,13 @@ export function createComplex(
 	const group = new Group();
 	group.name = 'complex';
 	const placed = [
-		...layout.blocks.map((block) => ({ ...block, y: groundAt(block.x, block.z) })),
+		...layout.blocks
+			.filter((block) => block.sector !== 'khufu-temple')
+			.map((block) => ({ ...block, y: groundAt(block.x, block.z) })),
 		...causewayBlocks(layout, groundAt)
 	];
+	const templeBlocks = layout.blocks.filter((block) => block.sector === 'khufu-temple');
+	if (templeBlocks.length) group.add(createKhufuTemple(templeBlocks, groundAt));
 	const buckets = new Map<string, typeof placed>();
 	for (const block of placed) {
 		const key = `${block.material}:${block.batter}`;
@@ -123,6 +129,8 @@ export function createComplex(
 }
 
 export function disposeComplex(group: Group): void {
+	const temple = group.getObjectByName('khufu-temple-sector');
+	if (temple instanceof LOD) disposeKhufuTemple(temple);
 	group.traverse((object) => {
 		const mesh = object as InstancedMesh;
 		if (mesh.isInstancedMesh) {

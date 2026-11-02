@@ -1,9 +1,11 @@
+import { PLAN_FEATURES } from '#lib/monuments/complex/plan-features.ts';
 import { type Fact, fact } from '../content/sources.ts';
 import type { BlockTargetId } from './block-targets.ts';
 import { GIS_MASTABAS } from './giza-gis.ts';
 import { SPHINX_PLACEMENT } from './layout.ts';
 import { KHAFRE, KHUFU_OPENINGS, MENKAURE, MENKAURE_GRANITE, SPHINX } from './pyramids.ts';
 import { KHUFU_QUARRY, QUARRY_TRACE } from './quarry.ts';
+import { WALL_OF_THE_CROW, WORKERS_TOWN, WORKERS_TOWN_LAYOUT } from './workers-town.ts';
 
 export type HotspotAnchor =
 	| { kind: 'face'; pyramid: BlockTargetId; side: 'north' | 'east'; height: number; along: number }
@@ -30,6 +32,11 @@ export interface Hotspot {
 const entrance = KHUFU_OPENINGS.entrance.value;
 const tunnel = KHUFU_OPENINGS.robbersTunnel.value;
 const quarry = KHUFU_QUARRY.value;
+const townLayout = WORKERS_TOWN_LAYOUT.value;
+const gate = {
+	x: townLayout.wallWest.x + (townLayout.wallEast.x - townLayout.wallWest.x) * townLayout.gateAlong,
+	z: townLayout.wallWest.z + (townLayout.wallEast.z - townLayout.wallWest.z) * townLayout.gateAlong
+};
 const eastMastabas = GIS_MASTABAS.filter((mastaba) => mastaba.x > 150);
 const mastabaCentre = {
 	x: eastMastabas.reduce((sum, mastaba) => sum + mastaba.x, 0) / eastMastabas.length,
@@ -109,6 +116,18 @@ export const HOTSPOTS: readonly Hotspot[] = [
 		)
 	},
 	{
+		id: 'khufu-temple',
+		anchor: { kind: 'ground', ...PLAN_FEATURES.value.khufuTemple, lift: 1 },
+		view: { distance: 65, bearing: 135, elevation: 28 },
+		text: fact(
+			{
+				title: 'Basalt court of Khufu’s temple',
+				body: 'The mortuary temple’s dark basalt pavement was fitted from irregular slabs over a limestone bedding. This scene interprets the surviving court: individual joints, broken walls and fallen fragments are illustrative, not a stone-by-stone survey.'
+			},
+			{ status: 'hypothesis', sources: ['arceKhufuTemple', 'digitalGiza'], checked: 'primary' }
+		)
+	},
+	{
 		id: 'east-cemetery',
 		anchor: { kind: 'ground', x: mastabaCentre.x, z: mastabaCentre.z, lift: 5 },
 		view: { distance: 260, bearing: 120, elevation: 35 },
@@ -139,6 +158,27 @@ export const HOTSPOTS: readonly Hotspot[] = [
 				body: `A block of ${quarry.monolithTonnes[0]}–${quarry.monolithTonnes[1]} t still roughed out and attached to the bedrock near the Sphinx, in the quarry that supplied Khufu’s core. Its position here is approximate.`
 			},
 			{ status: 'established', sources: ['aeraQuarry'], checked: 'secondary' }
+		)
+	},
+	{
+		id: 'wall-of-the-crow',
+		anchor: { kind: 'ground', x: gate.x, z: gate.z, lift: 8 },
+		view: { distance: 120, bearing: 150, elevation: 16 },
+		text: fact(
+			{ title: 'The Wall of the Crow', body: WALL_OF_THE_CROW.note ?? '' },
+			{ status: 'established', sources: WALL_OF_THE_CROW.sources, checked: 'secondary' }
+		)
+	},
+	{
+		id: 'workers-town',
+		anchor: { kind: 'ground', x: gate.x + 60, z: gate.z + 90, lift: 4 },
+		view: { distance: 280, bearing: 175, elevation: 32 },
+		text: fact(
+			{
+				title: 'The town of the pyramid builders',
+				body: `${WORKERS_TOWN.note ?? ''} Its buried remains lie here; the reconstruction appears in the “Then and now” chapter, with a schematic layout.`
+			},
+			{ status: 'established', sources: WORKERS_TOWN.sources, checked: 'secondary' }
 		)
 	},
 	{
