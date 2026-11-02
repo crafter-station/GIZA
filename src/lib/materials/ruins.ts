@@ -1,6 +1,6 @@
 import { color, mix, mx_noise_float, positionWorld, saturate, smoothstep } from 'three/tsl';
 import { MeshStandardNodeMaterial } from 'three/webgpu';
-import { MASONRY_PALETTE } from './masonry.ts';
+import { MASONRY_PALETTE } from './masonry-palette.ts';
 
 export function createBasaltMaterial(): MeshStandardNodeMaterial {
 	const material = new MeshStandardNodeMaterial({ roughness: 0.75, metalness: 0 });

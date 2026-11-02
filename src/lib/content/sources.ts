@@ -60,6 +60,12 @@ export const SOURCES = {
 		publisher: 'Nature Communications 14: 1144',
 		doi: '10.1038/s41467-023-36351-0'
 	},
+	brierHoudin2008: {
+		author: 'Bob Brier, Jean-Pierre Houdin',
+		title: 'The Secret of the Great Pyramid',
+		year: 2008,
+		publisher: 'Smithsonian Books / HarperCollins'
+	},
 	tallet2017: {
 		author: 'Pierre Tallet',
 		title: 'Les papyrus de la mer Rouge I: Le « journal de Merer » (papyrus Jarf A et B)',
