@@ -38,6 +38,7 @@ import {
 	Vector4
 } from 'three/webgpu';
 import type { TerrainHeightmapMeta } from '../data/terrain.ts';
+import { cloudShadow } from '../world/atmosphere/clouds.ts';
 import { DRIFT_SPEED, GUST_PERIOD_SECONDS, WIND_DIRECTION_XZ } from '../world/atmosphere/wind.ts';
 import { bedrockZoneNode, erosionHeightNode, fissureNode } from '../world/terrain/erosion.ts';
 import { quarryChannelsNode, quarryMaskNode, quarryOffsetNode } from '../world/terrain/quarry.ts';
@@ -97,7 +98,11 @@ function createHeightTexture(shaped: ShapedTerrain, meta: TerrainHeightmapMeta):
 	return heightTexture;
 }
 
-export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightmapMeta): GroundMaterial {
+export function createGroundMaterial(
+	shaped: ShapedTerrain,
+	meta: TerrainHeightmapMeta,
+	horizonLight: (xz: Node<'vec2'>) => Node<'float'>
+): GroundMaterial {
 	const heightTexture = createHeightTexture(shaped, meta);
 	const transform = uniform(heightTextureTransform(meta));
 
@@ -134,6 +139,8 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		).div(step * 2);
 
 	const material = new MeshStandardNodeMaterial({ roughness: 0.96, metalness: 0 });
+	const receiveShadow = Fn(([shadow]: [Node<'float'>]) => shadow.mul(horizonLight(positionWorld.xz)));
+	material.receivedShadowNode = receiveShadow as unknown as () => Node;
 
 	material.positionNode = Fn(() => {
 		const world = modelWorldMatrix.mul(vec4(positionLocal, 1)).xz;
@@ -221,7 +228,9 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 	const viewDistance = distance(cameraPosition, positionWorld);
 	const channel = quarryChannelsNode(xz, viewDistance);
 	const fissure = fissureNode(xz).mul(oneMinus(smoothstep(30, 220, distance(cameraPosition, positionWorld))));
-	material.colorNode = mix(quarried, bedrock.mul(oneMinus(fissure.mul(0.35))), rock).mul(oneMinus(channel.mul(0.28)));
+	material.colorNode = mix(quarried, bedrock.mul(oneMinus(fissure.mul(0.35))), rock)
+		.mul(oneMinus(channel.mul(0.28)))
+		.mul(cloudShadow(positionWorld));
 	material.roughnessNode = mix(float(0.97), float(0.88), rock);
 
 	const rippleFade = oneMinus(smoothstep(10, 65, distance(cameraPosition, positionWorld)))

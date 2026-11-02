@@ -48,10 +48,13 @@ import { Environment } from '../world/atmosphere/environment.ts';
 import type { LightingMode } from '../world/atmosphere/lighting.ts';
 import { AncientReconstruction } from '../world/era/reconstruction.ts';
 import { tourEra } from '../world/era/timeline.ts';
+import { createBirds, disposeBirds } from '../world/life/birds.ts';
+import { DustDevils } from '../world/life/dust-devils.ts';
 import { createBedrockBlocks, quarryBedrock, quarryRocks } from '../world/props/quarry-rocks.ts';
 import { scatterRocks } from '../world/props/rock-scatter.ts';
 import { createRockField, disposeRockField } from '../world/props/rocks.ts';
 import { Torches, torchPositions } from '../world/props/torches.ts';
+import { quarryMask } from '../world/terrain/quarry.ts';
 import { createGroundSampler } from '../world/terrain/relief.ts';
 import { flattenFootprints } from '../world/terrain/shape.ts';
 import { loadHeightmap, Terrain } from '../world/terrain/terrain.ts';
@@ -91,6 +94,17 @@ const SUN_REFERENCE_INTENSITY = 3.4;
 const SAND_HISS_HEIGHT = 120;
 const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
 const QUARRY_SEED = 2760;
+const BIRD_SEED = 1149;
+const VALLEY_SAND_EDGE = 450;
+const PYRAMID_CLEARANCE = 170;
+const THERMALS: readonly (readonly [number, number])[] = [
+	[-150, 200],
+	[60, 600],
+	[-700, -300],
+	[-900, 900],
+	[350, -350],
+	[-450, 1250]
+];
 
 const KHUFU_SHAPE = {
 	baseSide: KHUFU.baseSide.value,
@@ -273,6 +287,20 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	});
 	jointDust.mesh.position.copy(khufuVolume.position);
 	scene.add(jointDust.mesh);
+	const lively = tier !== 'low' && !matchMedia('(prefers-reduced-motion: reduce)').matches;
+	const birds = lively
+		? createBirds(
+				THERMALS.map(([x, z]) => ({ x, z, ground: groundAt(x, z) })),
+				BIRD_SEED
+			)
+		: null;
+	const isSand = (x: number, z: number) =>
+		x < VALLEY_SAND_EDGE &&
+		quarryMask(x, z) === 0 &&
+		placedPyramids.every((placed) => Math.hypot(x - placed.volume.x, z - placed.volume.z) > PYRAMID_CLEARANCE);
+	const dustDevils = lively ? new DustDevils(groundAt, isSand) : null;
+	if (birds) scene.add(birds);
+	if (dustDevils) scene.add(dustDevils.mesh);
 	let soundscape: Soundscape | null = null;
 	const landings = new LandingDetector();
 	const updateAtmosphere = (dt: number) => {
@@ -281,6 +309,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		torches.update(camera.position, night);
 		motes.step(renderer, dt, camera.position, environment.sunDirection, daylight);
 		jointDust.step(renderer, dt, 0.25 + daylight * 0.75);
+		dustDevils?.update(dt, camera.position, daylight * (1 - night));
 		if (!soundscape) return;
 		const height = camera.position.y - groundAt(camera.position.x, camera.position.z);
 		soundscape.setMix({
@@ -462,6 +491,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			}
 		}
 		environment.update(director.t);
+		terrain.updateSun(environment.sunDirection);
 		updateAtmosphere(dt);
 		pipeline.render(director.t);
 		stats?.update();
@@ -763,6 +793,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			torches.dispose();
 			motes.dispose();
 			jointDust.dispose();
+			dustDevils?.dispose();
+			if (birds) disposeBirds(birds);
 			disposeCasingGhost(casing);
 			(interior.children[0] as Mesh | undefined)?.geometry.dispose();
 			for (const material of Object.values(interiorMaterials)) material.dispose();

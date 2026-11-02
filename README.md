@@ -103,26 +103,3 @@ The engine is framework-free TypeScript. Svelte never touches a three.js object:
 ## Performance
 
 Measured on an RTX 3050 laptop, Chrome, WebGPU, ultra tier, 140 000 blocks: median frame 16.7 ms (60 fps, vsync capped). The WebGL2 fallback is capped at the medium tier. Budgets for the remaining devices are in [plan.md](plan.md) section 8.
-
-## Status
-
-Phases 0 to 8 of the master plan are complete: foundations, engine and block spike, scale mock-up, light and sky, terrain, pyramids, deconstruction, environment and living atmosphere.
-
-Next: the phase 10 device matrix and QA pass, plus the visual fidelity blocks in section 13. [plan.md](plan.md) is the source of truth and the only document written in Spanish.
-
-## Metadata and icons
-
-| Path | What it is |
-|---|---|
-| `static/favicon.ico` | Root fallback that browsers and crawlers probe directly |
-| `static/metadata/favicon-16x16.png`, `favicon-32x32.png` | PNG favicons declared in the document head |
-| `static/metadata/apple-touch-icon.png` | iOS home screen icon |
-| `static/metadata/android-chrome-192x192.png`, `-512x512.png` | PWA icons referenced by the manifest |
-| `static/metadata/site.webmanifest` | Installable app manifest with theme colour |
-| `static/metadata/og.jpg` | Social card, 1200 × 630, at `/metadata/og.jpg` (pending) |
-
-The primary icon is `src/lib/assets/favicon.svg`, inlined by the bundler and kept as the first declared icon. Title, description, canonical, Open Graph, Twitter card and JSON-LD live in `src/lib/app/site.ts` and the page head. `SITE_ORIGIN` holds the production domain (`https://giza.crafter.run`), and `/sitemap.xml` is prerendered from it at build time.
-
-## License
-
-No license file yet. The code, the copy and the generated imagery belong to the project owner; the Sphinx model and the star catalogue keep their own attributions, documented in `assets-src/`.

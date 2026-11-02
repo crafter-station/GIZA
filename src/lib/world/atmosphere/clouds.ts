@@ -27,7 +27,7 @@ export function cloudDensity(plane: Node<'vec2'>): Node<'float'> {
 		.mul(0.5)
 		.add(0.5);
 	const threshold = float(1).sub(cloudState.coverage);
-	return smoothstep(threshold.sub(0.12), threshold.add(0.22), base).mul(cloudState.coverage.greaterThan(0.001));
+	return smoothstep(threshold.sub(0.12), threshold.add(0.22), base).mul(smoothstep(0, 0.02, cloudState.coverage));
 }
 
 export function cloudShadow(position: Node<'vec3'>): Node<'float'> {

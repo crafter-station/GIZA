@@ -634,12 +634,13 @@ La imagen de referencia del propietario (vista aérea al atardecer con bruma dor
 | **7. Cadena fotográfica HDR** ✅ | Autoexposición por luminancia logarítmica con adaptación temporal y balance de blancos parcial; curva en S suave antes de AgX; bloom en pirámide de mips que conserve la energía, con media de Karis contra destellos; grano fino de película y halo solar suave (aureola) en contraluz; protección contra NaN | Amanecer, mediodía, ocaso y noche se exponen solos sin saltos; el sol velado de la referencia se ve sin quemar el cielo; el texto del DOM no se ve afectado |
 | **8. Terreno a media distancia** ✅ | Detalle procedural de dunas de mayor frecuencia (barjanes orientados por el viento del norte) mezclado con el DEM; variación de color a varias escalas que rompa el aspecto borroso a 300–2 000 m; varianza de pendiente convertida en rugosidad (idea LEAN de `water.js`) para que el detalle no desaparezca de golpe | El suelo deja de verse «manchado» desde el dron; sin repetición visible; misma altura en CPU y GPU |
 | **9. Piedra de las pirámides** ✅ | Sombreado por hilada medida (sombra y polvo en cada escalón según la normal), oclusión de contacto en juntas, variación de tono por bloque visible desde lejos, desgaste de aristas y del revestimiento de Kefrén; detalle geométrico solo cerca | Desde el dron las caras se leen escalonadas como en la referencia (luz rasante con bandas); de cerca, bloques individuales; sin cambiar dimensiones |
-| **10. Cielo y luz rasante** ⬜ | Velo alto de cirros o polvo con rayos crepusculares más marcados al amanecer y al ocaso; disco solar velado; sombras de nubes lentas sobre la meseta (mapa de sombra de nubes a baja resolución, como en Open Water) | Los rayos y las sombras de nubes se ven en los capítulos de luz baja sin parpadeo; desactivables en nivel bajo |
-| **12. Vida discreta** ⬜ | Pocas aves lejanas (milanos planeando) como sprites con animación por vértice; remolinos de polvo ocasionales que reutilizan el sistema de motas; nada de bucles llamativos | Aportan escala sin distraer; se apagan con movimiento reducido y en nivel bajo |
-| **13. Sombra de horizonte del terreno** ⬜ | Mapa de horizonte precalculado del DEM (una vez, en el worker de terreno) para oscurecer valles y la cantera con el sol bajo más allá del alcance de las cascadas CSM | Al amanecer los wadis y la cantera quedan en sombra a varios kilómetros, como en la referencia; sin coste por fotograma apreciable |
+| **10. Cielo y luz rasante** ✅ | Velo alto de cirros o polvo con rayos crepusculares más marcados al amanecer y al ocaso; disco solar velado; sombras de nubes lentas sobre la meseta (mapa de sombra de nubes a baja resolución, como en Open Water) | Los rayos y las sombras de nubes se ven en los capítulos de luz baja sin parpadeo; desactivables en nivel bajo |
+| **12. Vida discreta** ✅ | Pocas aves lejanas (milanos planeando) como sprites con animación por vértice; remolinos de polvo ocasionales que reutilizan el sistema de motas; nada de bucles llamativos | Aportan escala sin distraer; se apagan con movimiento reducido y en nivel bajo |
+| **13. Sombra de horizonte del terreno** ✅ | Mapa de horizonte precalculado del DEM (una vez, en el worker de terreno) para oscurecer valles y la cantera con el sol bajo más allá del alcance de las cascadas CSM | Al amanecer los wadis y la cantera quedan en sombra a varios kilómetros, como en la referencia; sin coste por fotograma apreciable |
 | **14. Deconstruir las tres pirámides** ⬜ | Selección de una pirámide objetivo (Keops, Kefrén o Micerinos) para todo el sistema de bloques: deconstruir, rayos X con corte, campo de fuerza, Inspector, derrumbe, construir con rampas y vista por origen. Ver el diseño debajo | Las tres pirámides se pueden deconstruir y reensamblar sin fugas de memoria ni pérdida de rendimiento; las cifras de Kefrén y Micerinos que no estén medidas se rotulan como estimación; Keops se sigue viendo y comportando igual |
+| **15. Anotaciones (hotspots) con vuelo de cámara** ⬜ | Puntos de interés numerados sobre la Esfinge, las pirámides y otros objetos; al pulsar uno, la cámara vuela con una interpolación suave hasta un encuadre configurado y orbita alrededor de ese punto, como las anotaciones de Sketchfab. Ver el diseño debajo | Cada anotación enfoca su objeto en 1–3,5 s sin saltos ni atravesar monumentos; los marcadores siguen al objeto, se atenúan si quedan ocultos y no tapan el texto; todo se puede usar con teclado y lector de pantalla; con movimiento reducido el cambio es un corte con fundido |
 
-Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después el 14. El propietario aprobó todos los bloques salvo el 11, que queda fuera; se hacen de uno en uno.
+Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después el 14 y el 15. El propietario aprobó todos los bloques salvo el 11, que queda fuera; se hacen de uno en uno.
 
 **Diseño del bloque 14 (selección de pirámide).** La forma recomendada es **una sola pirámide activa cada vez**, no las tres a la vez:
 - **Por qué solo una**:
@@ -658,6 +659,25 @@ Orden recomendado: 7 → 6 → 9 → 8 → 10 → 13 → 11 → 12, y después e
   - En Micerinos, las 16 hiladas de granito (`MENKAURE_GRANITE`) definen su vista por origen.
   - Los interiores (cámaras de Kefrén y de Micerinos) necesitan sus propias fuentes antes de modelarse; mientras tanto, los rayos X mostrarán solo el corte.
   - La línea de tiempo de construcción usará la duración del reinado solo si hay fuente; si no, se ocultan los años y se muestra solo el orden por volumen.
+
+**Diseño del bloque 15 (anotaciones al estilo Sketchfab).**
+- **Datos** (`src/lib/data/hotspots.ts`): cada anotación tiene identificador, número de orden, objeto, punto de anclaje en coordenadas del mundo y encuadre de cámara (posición, objetivo, FOV o, en su lugar, distancia y ángulos alrededor del anclaje). El título y el texto en inglés son `Fact` con fuentes. Los anclajes salen de datos existentes, no se inventan:
+  - Esfinge: `SPHINX_PLACEMENT`, cabeza y pecho.
+  - Keops: entrada original y túnel de al-Mamún (`KHUFU_OPENINGS`), restos del revestimiento, fosos de barcas.
+  - Kefrén: revestimiento de Tura en la cima.
+  - Micerinos: granito de Asuán y brecha de 1196.
+  - Templos, calzadas, cantera y monolito (`QUARRY_TRACE`), mastabas del Cementerio Oriental.
+- **Marcadores**: círculos numerados en el DOM con la identidad egipcia (tokens `gold`, `lapis`, `font-display`), situados cada fotograma con la proyección que publica el motor en el estado, sin que la interfaz toque three.js.
+  - Si quedan detrás de un monumento o del terreno, se atenúan. La comprobación se hace en la CPU contra volúmenes sencillos (pirámides y altura del terreno), unas 10 veces por segundo.
+  - Se ocultan los que están fuera de pantalla o a más de cierta distancia.
+- **Vuelo de cámara**: al pulsar un marcador o elegir la anotación en la lista, `engine.focusHotspot(id)` detiene el dron, pasa a modo libre e interpola con GSAP la posición, el objetivo y el FOV.
+  - Se usa un arco (interpolación esférica alrededor del objetivo con elevación mínima sobre el terreno) para no atravesar monumentos.
+  - Easing `power3.inOut`, con duración proporcional a la distancia y limitada a 1–3,5 s.
+  - Al llegar, OrbitControls queda centrado en el anclaje para orbitar y hacer zoom alrededor de él. Cualquier gesto del usuario cancela el vuelo en curso.
+  - Con movimiento reducido, el cambio es un corte con fundido.
+- **Panel de la anotación**: tarjeta no modal (Bits UI) con número, título, texto, fuentes y botones de anterior y siguiente para recorrer las anotaciones en orden, como la secuencia de Sketchfab, más «Cerrar».
+  - También hay una lista HTML de todas las anotaciones accesible con teclado, que es la alternativa a los marcadores 3D exigida por las reglas de accesibilidad.
+- **Relación con el resto**: en «Explorar libremente» se muestran todas las anotaciones. En el recorrido guiado, solo las del capítulo actual y sin vuelo automático, para no pelear con el scroll. Con el bloque 14, enfocar una anotación de una pirámide puede ofrecer «Seleccionar para deconstruir».
 
 Bloque 7 implementado (`src/lib/engine/photographic.ts`, conectado en `render-pipeline.ts`):
 - **Exposición por medición incidente**, como la de Open Water: la luz que recibiría una tarjeta gris bajo el sol, el cielo y el entorno actuales, sin leer la imagen desde la GPU, así que funciona igual en WebGL2. Compensa como mucho entre ×0,9 y ×1,2 sobre la exposición de cada luz y se adapta en 1,2 s, como el ojo, al cambiar de luz o de capítulo. Se reinicia con la historia temporal.
@@ -704,3 +724,32 @@ Bloque 8 implementado (`src/lib/world/terrain/ridges.ts`, `relief.ts` y `src/lib
 - **Color a escala media**: las caras a sotavento son más oscuras y rojizas (`leeSand`), con hasta un 35 % de mezcla, y hay parches de *serir* (pavimento de grava) de unos 120 m con hasta un 40 % de mezcla.
 - **Pendiente**: el shader del suelo es más pesado (dos gradientes y la función de crestas). Al cargar se nota una compilación más larga, que hay que medir en el bloque 5. A ras de suelo en el desierto, con el sol bajo, se ven un par de sombras alargadas sin identificar; se revisarán con el bloque 13.
 - **Verificación**: `pnpm check` y Biome limpios; capturas desde el dron al amanecer y a ras del desierto al ocaso. Sin tests automáticos, a petición del propietario.
+
+Bloque 10 implementado (`src/lib/world/atmosphere/clouds.ts`, integrado en `environment.ts`, `ground.ts` y `masonry.ts`):
+- **Un único campo de nubes compartido**: una capa alta de cirros o velo de polvo a 6 km, con ruido alargado según el viento del norte (escalas de 5,2 km a lo largo del viento y 1,3 km de través) y que deriva a 9 m/s. Sus uniforms son únicos y los importan todos los materiales.
+- **En el cielo**: el rayo de vista se proyecta al plano de las nubes. Su luz se calibra con la radiancia del propio cielo en ese píxel (×1,35) más un brillo hacia el sol teñido con el color del polvo; la opacidad es del 75 %, se desvanece junto al horizonte y de noche las nubes tapan la mitad del cielo nocturno. Como el cielo del entorno usa el mismo material, los reflejos también llevan nubes.
+- **Sombras de nubes**: el mismo campo se proyecta a lo largo de la dirección del sol sobre el suelo y las pirámides (oscurecen hasta un 32 %, escalado por la luz directa), así que las sombras que se mueven coinciden con las nubes visibles.
+- **Cobertura por luz**: amanecer 0,34, mediodía 0,18, ocaso 0,40 y noche 0,12. Los rayos crepusculares recuperan parte de su fuerza tras la corrección del bloom: 0,10 al amanecer y 0,085 al ocaso.
+- Es una **aproximación visual** de una capa fina, no un modelo volumétrico de nubes: no hay nubes gruesas ni iluminación por dispersión múltiple.
+- **Verificación**: `pnpm check` y Biome limpios; capturas al ocaso hacia el sol (cirros y sombra de nube visibles) y desde el dron al amanecer. Sin tests automáticos, a petición del propietario.
+
+Bloque 13 implementado (`src/lib/world/terrain/horizon.ts`, `horizon.worker.ts`, `horizon-shadow.ts`; conectado en `terrain.ts`, `ground.ts` y el motor):
+- **Horizonte solo en la dirección del sol**: en vez de precalcular 8 o 16 direcciones e interpolar, un Web Worker calcula para cada celda del DEM (257 × 257, 32 m) la pendiente máxima del terreno hacia el sol, en pasos de 24 m hasta 4 km. Lleva un margen de 0,6 m contra la autosombra del relieve bilineal.
+  - Tarda unos 210 ms fuera del hilo principal y solo se repite cuando el azimut del sol cambia más de 1°. La altura del sol no obliga a recalcular, porque se compara en el shader.
+  - El resultado se guarda en una textura `R16F` con el mismo mapeo que el mapa de alturas.
+- **Solo la luz directa**: el factor se aplica con `receivedShadowNode` del material del suelo, así que oscurece la sombra del sol (CSM) y no la luz ambiental ni la del cielo.
+  - La penumbra es suave (±0,025 de pendiente) y el efecto se desvanece en los últimos 300 m del DEM.
+  - Los tipos de `@types/three` 0.187 declaran `receivedShadowNode` sin parámetros, aunque three le pasa la sombra; se usa una conversión mínima.
+- **Las franjas alargadas del desierto (pendiente del bloque 8)**: no las causa el terreno. Son los volúmenes de sombra de los rayos crepusculares, que usan el mapa de sombra de su propia luz y hacen que las pirámides proyecten franjas sin rayos en la bruma hacia el punto antisolar. Es un fenómeno real y se mantiene.
+- **Verificación**: `pnpm check` y Biome limpios; el cálculo se midió en Node (211 ms; con el sol a unos 4,6° quedan bajo el horizonte 6 530 de 66 049 celdas); capturas al ocaso del valle y del desierto. Sin tests automáticos, a petición del propietario.
+
+Bloque 12 implementado (`src/lib/world/life/birds.ts`, `dust-devils.ts`; conectado en el motor):
+- **Milanos planeando en térmicas**: 12 siluetas en V de 1,6 m de envergadura, dos por cada una de las seis térmicas (sobre la meseta, la cantera y los bordes del desierto), a 70–190 m sobre el suelo.
+  - Cada una gira en su térmica (radio de 35–110 m, 0,08–0,16 rad/s, en uno u otro sentido), inclinada hacia el centro, con ángulo diedro, subidas y bajadas de ±6 m y aleteos ocasionales.
+  - Todo el movimiento se calcula en el shader a partir de búferes estáticos (`InstancedBufferGeometry`), sin trabajo por fotograma en la CPU. Las alcanza la bruma de la escena.
+- **Remolinos de polvo**: como mucho dos a la vez, cada uno con 260 partículas en una hélice que se ensancha hacia arriba hasta 65 m, con inclinación oscilante.
+  - Nacen solo de día, en arena (al oeste del valle, fuera de la cantera y a más de 170 m de las pirámides) y a 400–1 200 m de la cámara.
+  - Derivan con el viento a 4 m/s, viven 32 s con aparición y desvanecimiento, y esperan 18–55 s entre uno y otro.
+  - Usan un sistema propio y pequeño en vez de reutilizar las motas, porque las motas están ligadas a una caja alrededor de la cámara.
+- Ambos se desactivan en nivel bajo y con movimiento reducido. Son una ilustración del ambiente, no un censo de fauna.
+- **Verificación**: `pnpm check` y Biome limpios; captura con milanos visibles y sin errores en la consola (los errores restantes venían de recargas de la otra sesión). La aparición de los remolinos no se pudo encuadrar en la captura, porque nacen en dirección aleatoria. Sin tests automáticos, a petición del propietario.

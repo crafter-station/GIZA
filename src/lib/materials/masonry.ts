@@ -23,6 +23,7 @@ import {
 } from 'three/tsl';
 import { DoubleSide, MeshStandardNodeMaterial } from 'three/webgpu';
 import { STONE } from '../monuments/pyramid/generator.ts';
+import { cloudShadow } from '../world/atmosphere/clouds.ts';
 import { GROUND_PALETTE } from './ground.ts';
 import { MASONRY_PALETTE } from './masonry-palette.ts';
 import { surfaceGradientNormal } from './stone-detail.ts';
@@ -91,7 +92,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 		oneMinus(smoothstep(-0.7, -0.45, speckle)).mul(0.6)
 	);
 
-	material.colorNode = select(
+	const albedo = select(
 		stone.greaterThan(STONE.pyramidion - 0.5),
 		color(MASONRY_PALETTE.pyramidion).rgb,
 		select(
@@ -104,6 +105,7 @@ export function createMasonryMaterial(): MeshStandardNodeMaterial {
 			)
 		)
 	);
+	material.colorNode = albedo.mul(cloudShadow(p));
 	material.roughnessNode = select(
 		stone.greaterThan(STONE.pyramidion - 0.5),
 		float(0.22),

@@ -1,6 +1,7 @@
 import { type Box3, type Camera, Group, Mesh, Vector3 } from 'three/webgpu';
 import { decodeHeights, type TerrainHeightmapMeta } from '../../data/terrain.ts';
 import { createGroundMaterial } from '../../materials/ground.ts';
+import { HorizonShadow } from './horizon-shadow.ts';
 import type { ShapedTerrain } from './shape.ts';
 import { createHorizonGeometry, createTileGeometry, LOD_SEGMENTS, lodForDistance, TILE_SIZE } from './tiles.ts';
 
@@ -33,6 +34,7 @@ export class Terrain {
 	private readonly ground;
 	private readonly eye = new Vector3();
 	private readonly horizon: Mesh;
+	private readonly horizonShadow: HorizonShadow;
 
 	constructor(
 		shaped: ShapedTerrain,
@@ -47,7 +49,8 @@ export class Terrain {
 			maxHeight = Math.max(maxHeight, height);
 		}
 		this.geometries = LOD_SEGMENTS.map((segments) => createTileGeometry(segments, minHeight, maxHeight));
-		this.ground = createGroundMaterial(shaped, meta);
+		this.horizonShadow = new HorizonShadow(shaped.heights, meta);
+		this.ground = createGroundMaterial(shaped, meta, (xz) => this.horizonShadow.factor(xz));
 		const horizon = new Mesh(
 			createHorizonGeometry(meta.center, meta.halfExtent, minHeight, maxHeight),
 			this.ground.material
@@ -77,6 +80,10 @@ export class Terrain {
 		return this.ground.material;
 	}
 
+	updateSun(sunDirection: Vector3): void {
+		this.horizonShadow.update(sunDirection);
+	}
+
 	update(camera: Camera): void {
 		camera.getWorldPosition(this.eye);
 		for (const tile of this.tiles) {
@@ -92,5 +99,6 @@ export class Terrain {
 		this.horizon.geometry.dispose();
 		this.ground.material.dispose();
 		this.ground.texture.dispose();
+		this.horizonShadow.dispose();
 	}
 }

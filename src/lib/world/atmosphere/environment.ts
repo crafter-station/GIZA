@@ -1,6 +1,19 @@
 import { CSMShadowNode } from 'three/addons/csm/CSMShadowNode.js';
 import { SkyMesh } from 'three/addons/objects/SkyMesh.js';
-import { cameraPosition, dot, Fn, float, fog, If, mix, positionWorld, uniform, vec3, vec4 } from 'three/tsl';
+import {
+	cameraPosition,
+	dot,
+	Fn,
+	float,
+	fog,
+	If,
+	mix,
+	positionWorld,
+	smoothstep,
+	uniform,
+	vec3,
+	vec4
+} from 'three/tsl';
 import {
 	Color,
 	type CubeRenderTarget,
@@ -18,6 +31,7 @@ import {
 } from 'three/webgpu';
 import type { Tier } from '../../app/quality.ts';
 import { GIZA_ORIGIN } from '../../data/geo.ts';
+import { advanceClouds, cloudDensity, cloudPlane, cloudState } from './clouds.ts';
 import {
 	celestialState,
 	LIGHTING_LOOKS,
@@ -30,6 +44,9 @@ import { dustPhaseRatio, SUN_HAZE_SHARE } from './scattering.ts';
 import { StarField } from './stars.ts';
 
 const REBAKE_HOURS = 0.75;
+const CLOUD_BRIGHTNESS = 1.35;
+const CLOUD_SUN_GLOW = 2.2;
+const CLOUD_OPACITY = 0.75;
 const REBAKE_INTERVAL_MS = 500;
 
 export class Environment {
@@ -59,6 +76,7 @@ export class Environment {
 	private readonly density = uniform(0.0002);
 	private readonly hazeSun = uniform(new Vector3(0, 1, 0));
 	private readonly hazeSunShare = uniform(0);
+	private cloudClock = -1;
 	private lastMinute = -1;
 	private lastFov = -1;
 	private lastAspect = -1;
@@ -107,7 +125,13 @@ export class Environment {
 				const radiance = daylight.rgb.mul(this.skyRadiance);
 				const dust = this.fogColor.mul(dot(radiance, vec3(0.2126, 0.7152, 0.0722)).mul(1.35));
 				const hazy = mix(radiance, dust, this.haze.mul(elevation.oneMinus().mul(0.5).add(0.5)));
-				sky.material.colorNode = vec4(mix(hazy, nightSky, this.night), 1);
+				const view = positionWorld.sub(cameraPosition).normalize();
+				const density = cloudDensity(cloudPlane(cameraPosition, view)).mul(smoothstep(0.015, 0.12, view.y));
+				const skyLevel = dot(hazy, vec3(0.2126, 0.7152, 0.0722));
+				const forward = dot(view, cloudState.sunDirection).max(0).pow(4);
+				const cloudLight = vec3(skyLevel.mul(CLOUD_BRIGHTNESS)).add(dust.mul(forward.mul(CLOUD_SUN_GLOW)));
+				const clouded = mix(hazy, cloudLight, density.mul(CLOUD_OPACITY));
+				sky.material.colorNode = vec4(mix(clouded, nightSky.mul(density.mul(0.5).oneMinus()), this.night), 1);
 			}
 		}
 		this.environmentSky.showSunDisc.value = false;
@@ -202,6 +226,12 @@ export class Environment {
 		this.density.value = look.fogDensity;
 		this.fogColor.value.setHex(look.fogColor);
 		this.hazeSun.value.copy(this.sunDirection);
+		const clock = performance.now();
+		if (this.cloudClock >= 0) advanceClouds(Math.min((clock - this.cloudClock) / 1000, 0.1));
+		this.cloudClock = clock;
+		cloudState.coverage.value = look.clouds;
+		cloudState.sunDirection.value.copy(this.sunDirection);
+		cloudState.daylight.value = Math.min(this.sun.intensity / Math.max(look.sunIntensity, 0.001), 1) * (1 - look.night);
 		this.hazeSunShare.value =
 			SUN_HAZE_SHARE * (1 - look.night) * Math.min(this.sun.intensity / Math.max(look.sunIntensity, 0.001), 1);
 		for (const sky of this.skies) {
