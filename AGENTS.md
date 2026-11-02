@@ -38,6 +38,7 @@ The local discovery index is in `.atl/skill-registry.md`.
 | `pnpm test` | Vitest unit tests (Node) and component tests (browser) |
 | `pnpm test:e2e` | Playwright end-to-end tests against the production build (Chromium, Firefox, WebKit, mobile) |
 | `pnpm build:terrain <tile.tif>` | Rebuild the Giza heightmap from the Copernicus DEM tile |
+| `pnpm build:stars` | Rebuild the 2560 BCE star positions from the Bright Star Catalogue |
 
 ## Browser QA for Agents
 

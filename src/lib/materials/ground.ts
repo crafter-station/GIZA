@@ -39,6 +39,8 @@ import {
 } from 'three/webgpu';
 import type { TerrainHeightmapMeta } from '../data/terrain.ts';
 import { DRIFT_SPEED, GUST_PERIOD_SECONDS, WIND_DIRECTION_XZ } from '../world/atmosphere/wind.ts';
+import { bedrockZoneNode, erosionHeightNode, fissureNode } from '../world/terrain/erosion.ts';
+import { valueNoiseNode } from '../world/terrain/noise.ts';
 import { duneHeightNode, PLATFORM_DAMPING } from '../world/terrain/relief.ts';
 import type { ShapedTerrain } from '../world/terrain/shape.ts';
 import { SKIRT_DEPTH } from '../world/terrain/tiles.ts';
@@ -47,8 +49,8 @@ export const GROUND_PALETTE = {
 	sandLight: 0xddb47c,
 	sandDark: 0xc7915a,
 	gravel: 0xb8a387,
-	bedrockLight: 0xd2b688,
-	bedrockDark: 0xa98b62
+	bedrockLight: 0xb9ae99,
+	bedrockDark: 0x806f5b
 } as const;
 
 const WIND_DIRECTION = vec2(...WIND_DIRECTION_XZ);
@@ -98,9 +100,11 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		);
 
 	const squareCenter = vec2(meta.center.x, meta.center.z);
-	const heightAt = (xz: Node<'vec2'>) => {
+	const heightAt = (xz: Node<'vec2'>, erosionWeight: Node<'float'> = float(1)) => {
 		const ground = sampleGround(xz);
-		const measured = ground.r.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))));
+		const measured = ground.r
+			.add(duneHeightNode(xz).mul(oneMinus(ground.g.mul(PLATFORM_DAMPING))))
+			.add(erosionHeightNode(xz, ground.g).mul(erosionWeight));
 		const offset = abs(xz.sub(squareCenter)).sub(meta.halfExtent);
 		const beyond = smoothstep(0, HORIZON_BLEND, max(offset.x, offset.y));
 		const desert = oneMinus(smoothstep(VALLEY_EDGE[0], VALLEY_EDGE[1], xz.x));
@@ -119,10 +123,11 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 
 	const xz = positionWorld.xz;
 	const platform = sampleGround(xz).g;
-	const left = heightAt(xz.sub(vec2(NORMAL_STEP, 0)));
-	const right = heightAt(xz.add(vec2(NORMAL_STEP, 0)));
-	const north = heightAt(xz.sub(vec2(0, NORMAL_STEP)));
-	const south = heightAt(xz.add(vec2(0, NORMAL_STEP)));
+	const normalErosion = oneMinus(smoothstep(80, 260, distance(cameraPosition, positionWorld)));
+	const left = heightAt(xz.sub(vec2(NORMAL_STEP, 0)), normalErosion);
+	const right = heightAt(xz.add(vec2(NORMAL_STEP, 0)), normalErosion);
+	const north = heightAt(xz.sub(vec2(0, NORMAL_STEP)), normalErosion);
+	const south = heightAt(xz.add(vec2(0, NORMAL_STEP)), normalErosion);
 	const terrainNormal = normalize(vec3(left.sub(right), float(NORMAL_STEP * 2), north.sub(south)));
 
 	const macro = mx_noise_float(vec3(xz.div(900), 0.3))
@@ -131,7 +136,11 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		.add(mx_noise_float(vec3(xz.div(35), 4.1)).mul(0.2));
 	const streaks = mx_noise_float(vec3(dot(xz, WIND_DIRECTION).div(260), dot(xz, WIND_ACROSS).div(28), 7.3));
 	const slope = oneMinus(terrainNormal.y);
-	const rock = smoothstep(0.12, 0.3, slope);
+	const exposed = bedrockZoneNode(xz)
+		.mul(oneMinus(platform).pow(2))
+		.mul(smoothstep(0.3, 0.72, valueNoiseNode(xz.div(120).add(vec2(8, -5)))).mul(0.75).add(0.2));
+	const steepRock = smoothstep(0.12, 0.3, slope);
+	const rock = max(steepRock, exposed);
 	const strata = sin(positionWorld.y.mul((Math.PI * 2) / 1.4).add(macro.mul(2)))
 		.mul(0.5)
 		.add(0.5);
@@ -152,21 +161,23 @@ export function createGroundMaterial(shaped: ShapedTerrain, meta: TerrainHeightm
 		.mul(oneMinus(rock), oneMinus(platform), gust.mul(0.6).add(0.4));
 	const drifting = sand.add(color(GROUND_PALETTE.sandLight).mul(drift.mul(0.09)));
 	const packed = mix(drifting, color(GROUND_PALETTE.gravel), platform.mul(0.55));
-	const bedrock = mix(
-		color(GROUND_PALETTE.bedrockDark),
-		color(GROUND_PALETTE.bedrockLight),
-		saturate(strata.mul(0.6).add(macro.mul(0.25)).add(0.2))
+	const bedrockPattern = mix(
+		saturate(macro.mul(0.5).add(0.5)),
+		saturate(strata.mul(0.6).add(macro.mul(0.25)).add(0.2)),
+		steepRock
 	);
-	material.colorNode = mix(packed, bedrock, rock);
+	const bedrock = mix(color(GROUND_PALETTE.bedrockDark), color(GROUND_PALETTE.bedrockLight), bedrockPattern);
+	const fissure = fissureNode(xz).mul(oneMinus(smoothstep(30, 220, distance(cameraPosition, positionWorld))));
+	material.colorNode = mix(packed, bedrock.mul(oneMinus(fissure.mul(0.35))), rock);
 	material.roughnessNode = mix(float(0.97), float(0.88), rock);
 
-	const rippleFade = oneMinus(smoothstep(25, 140, distance(cameraPosition, positionWorld)))
+	const rippleFade = oneMinus(smoothstep(10, 65, distance(cameraPosition, positionWorld)))
 		.mul(oneMinus(rock))
 		.mul(oneMinus(platform));
 	const ripplePhase = dot(xz, WIND_DIRECTION)
 		.mul((Math.PI * 2) / RIPPLE_WAVELENGTH)
 		.add(mx_noise_float(vec3(xz.mul(0.05), 2.2)).mul(6));
-	const ripple = sin(ripplePhase).mul(0.25).mul(rippleFade);
+	const ripple = sin(ripplePhase).mul(0.09).mul(rippleFade);
 	const shadedNormal = normalize(
 		terrainNormal.add(vec3(WIND_DIRECTION.x.mul(ripple), 0, WIND_DIRECTION.y.mul(ripple)))
 	);
