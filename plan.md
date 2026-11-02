@@ -875,6 +875,7 @@ Bloque 16 implementado (`src/lib/materials/ashlar.ts`, `src/lib/data/workers-tow
   - El Edificio Administrativo Real con diez silos.
   - Seis panaderías, y los pueblos Occidental (22 casas) y Oriental (28 casas).
   - La fuente da los componentes, el área (más de 7 ha) y la posición relativa (unos 400 m al sur de la Esfinge, al sureste del muro), pero no la planta. Las medidas de cada edificio, los techos y las posiciones exactas son visuales y así se rotulan.
+- **Presencia de la ciudad** (ajuste pedido por el propietario): en «Explorar libremente» se ve siempre como previsualización translúcida al 35 %. Al enfocar su anotación pasa a verse completa y opaca, y al cerrarla vuelve a la previsualización con una transición suave (0,6 s). En el recorrido sigue la época del capítulo «Then and now». El motor combina los tres casos en un único valor de presencia.
 - **Anotaciones nuevas**: el muro del Cuervo y la ciudad de los constructores (13 en total). La de la ciudad explica que sus restos están enterrados y que la reconstrucción aparece en el capítulo «Then and now».
 - **Bloque 3**: con la sillería, los templos y las mastabas ya no son cajas lisas. Quedan pendientes la oclusión de contacto en juntas y bases, y revisar de cerca el revestimiento de Tura de la reconstrucción.
 - **Verificación**: `pnpm check` y Biome limpios; capturas de las mastabas del Cementerio Oriental, del muro del Cuervo y de la ciudad en el capítulo «Then and now», sin errores en consola. Sin tests automáticos, a petición del propietario.

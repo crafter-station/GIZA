@@ -108,6 +108,9 @@ const SAND_HISS_HEIGHT = 120;
 const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
 const QUARRY_SEED = 2760;
 const KEY_PAN_SPEED = 25;
+const TOWN_HOTSPOT = 'workers-town';
+const TOWN_PREVIEW = 0.35;
+const TOWN_FADE_SECONDS = 0.6;
 const TARGET_VIEW_DISTANCE = 1.9;
 const TARGET_VIEW_HEIGHT = 0.75;
 const TARGET_FLIGHT_SECONDS = 2.4;
@@ -290,6 +293,15 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const mudbrick = createAshlarMaterial(ASHLAR_STYLES.mudbrick);
 	const workersTown = new WorkersTown(groundAt, ruinMaterials.limestone, mudbrick);
 	scene.add(valley.group, reconstruction.group, workersTown.wall, workersTown.town);
+	let townPresence = 0;
+	let activeHotspot: string | null = null;
+	const updateTown = (dt: number) => {
+		const explored = director.isFree ? (activeHotspot === TOWN_HOTSPOT ? 1 : TOWN_PREVIEW) : 0;
+		const target = Math.max(tourEra(director.t), explored);
+		townPresence += (target - townPresence) * (1 - Math.exp(-dt / TOWN_FADE_SECONDS));
+		if (Math.abs(target - townPresence) < 0.002) townPresence = target;
+		workersTown.setEra(townPresence);
+	};
 	let renderedEra = -1;
 	const updateEra = () => {
 		const amount = tourEra(director.t);
@@ -297,7 +309,6 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		if (Math.abs(amount - renderedEra) > 0.25) pipeline.resetHistory();
 		valley.setEra(amount);
 		reconstruction.setEra(amount);
-		workersTown.setEra(amount);
 		renderedEra = amount;
 		document.documentElement.dataset.era = String(Math.round(amount * 100));
 	};
@@ -531,6 +542,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		terrain.updateSun(environment.sunDirection);
 		hotspots.update(camera, canvas.clientWidth, canvas.clientHeight, director.isFree && !director.droneFlying, time);
 		updateAtmosphere(dt);
+		updateTown(dt);
 		pipeline.render(director.t);
 		stats?.update();
 		if (flags.perf && time - lastPublished > 1000) {
@@ -787,6 +799,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 		},
 		setTarget,
 		focusHotspot: (id) => {
+			activeHotspot = id;
 			const flight = id === null ? null : hotspots.flight(id, camera.position);
 			if (flight) director.focus(flight.camera.toArray(), flight.anchor.toArray(), reducedMotion ? 0 : flight.seconds);
 			patch({ hotspot: flight ? id : null });

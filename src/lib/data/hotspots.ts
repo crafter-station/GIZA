@@ -176,7 +176,7 @@ export const HOTSPOTS: readonly Hotspot[] = [
 		text: fact(
 			{
 				title: 'The town of the pyramid builders',
-				body: `${WORKERS_TOWN.note ?? ''} Its buried remains lie here; the reconstruction appears in the “Then and now” chapter, with a schematic layout.`
+				body: `${WORKERS_TOWN.note ?? ''} Its buried remains lie here. The reconstruction is shown faintly while exploring and in full at this point and in the “Then and now” chapter; its layout is schematic.`
 			},
 			{ status: 'established', sources: WORKERS_TOWN.sources, checked: 'secondary' }
 		)
