@@ -13,18 +13,20 @@ export interface TierSettings {
 	dustMotes: number;
 	jointDust: number;
 	torchLights: number;
+	terrainDetailFar: number;
 }
 
 export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 	low: {
 		blockTarget: 12_000,
-		maxPixelRatio: 1,
+		maxPixelRatio: 0.75,
 		rockCount: 350,
 		pyramidDetail: 0.25,
 		physicsBodies: 400,
 		dustMotes: 1500,
 		jointDust: 1500,
-		torchLights: 0
+		torchLights: 0,
+		terrainDetailFar: 500
 	},
 	medium: {
 		blockTarget: 30_000,
@@ -34,7 +36,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		physicsBodies: 1000,
 		dustMotes: 4000,
 		jointDust: 4000,
-		torchLights: 2
+		torchLights: 2,
+		terrainDetailFar: 900
 	},
 	high: {
 		blockTarget: 70_000,
@@ -44,7 +47,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		physicsBodies: 2000,
 		dustMotes: 8000,
 		jointDust: 8000,
-		torchLights: 4
+		torchLights: 4,
+		terrainDetailFar: 1600
 	},
 	ultra: {
 		blockTarget: 140_000,
@@ -54,7 +58,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		physicsBodies: 3000,
 		dustMotes: 12000,
 		jointDust: 12000,
-		torchLights: 4
+		torchLights: 4,
+		terrainDetailFar: 1600
 	}
 };
 

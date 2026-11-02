@@ -1,5 +1,6 @@
-import { dot, float, max, mx_noise_float, smoothstep, uniform, vec2, vec3 } from 'three/tsl';
+import { dot, float, max, smoothstep, uniform, vec2 } from 'three/tsl';
 import { type Node, Vector2, Vector3 } from 'three/webgpu';
+import { signedNoiseNode } from '../terrain/noise.ts';
 import { WIND_DIRECTION_XZ } from './wind.ts';
 
 const CLOUD_HEIGHT = 6000;
@@ -21,9 +22,9 @@ export function cloudDensity(plane: Node<'vec2'>): Node<'float'> {
 	const p = plane.add(cloudState.offset);
 	const along = dot(p, vec2(WX, WZ)).div(ALONG_SCALE);
 	const across = dot(p, vec2(-WZ, WX)).div(ACROSS_SCALE);
-	const base = mx_noise_float(vec3(along, across, 0.7))
+	const base = signedNoiseNode(vec2(along, across), 0.7)
 		.mul(0.65)
-		.add(mx_noise_float(vec3(along.mul(3.1), across.mul(2.7), 4.2)).mul(0.35))
+		.add(signedNoiseNode(vec2(along.mul(3.1), across.mul(2.7)), 4.2).mul(0.35))
 		.mul(0.5)
 		.add(0.5);
 	const threshold = float(1).sub(cloudState.coverage);

@@ -5,7 +5,7 @@ import { fade } from 'svelte/transition';
 </script>
 
 <div
-	class="pointer-events-none fixed bottom-24 left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1 text-papyrus drop-shadow-[0_2px_6px_rgb(20_14_8/0.7)] sm:bottom-6"
+	class="pointer-events-none fixed top-[44svh] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-1 text-papyrus drop-shadow-[0_2px_6px_rgb(20_14_8/0.7)] sm:top-auto sm:bottom-6"
 	role="status"
 	aria-label="Scroll to continue the journey"
 	transition:fade={{ duration: 300 }}

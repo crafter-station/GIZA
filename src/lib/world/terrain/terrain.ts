@@ -80,6 +80,10 @@ export class Terrain {
 		return this.ground.material;
 	}
 
+	setDetailDistance(metres: number): void {
+		this.ground.detailFar.value = metres;
+	}
+
 	updateSun(sunDirection: Vector3): void {
 		this.horizonShadow.update(sunDirection);
 	}

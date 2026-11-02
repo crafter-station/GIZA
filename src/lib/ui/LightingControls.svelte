@@ -42,7 +42,7 @@ const label = $derived(LIGHTING_OPTIONS.find((option) => option.value === value)
 			class="flex min-h-11 items-center gap-3 rounded-sm border border-gold/60 bg-lapis-deep/85 px-4 py-2 text-sm text-papyrus shadow-lg backdrop-blur-sm outline-none focus-visible:ring-2 focus-visible:ring-gold-light disabled:opacity-50"
 		>
 			<span class="glyph text-lg text-gold-light" aria-hidden="true">{SIGNS[value]}</span>
-			<span class="font-medium">{label}</span>
+			<span class="hidden font-medium sm:inline">{label}</span>
 			<Icon icon={chevronDown} class="size-3 shrink-0 text-gold-light/80" aria-hidden="true" />
 		</Select.Trigger>
 		<Select.Portal>

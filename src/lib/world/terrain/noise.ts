@@ -43,3 +43,9 @@ export const valueNoiseNode = Fn(([point]: [Node<'vec2'>]) => {
 	const bottom = mix(hashNode(cell.add(vec2(0, 1))), hashNode(cell.add(vec2(1, 1))), s.x);
 	return mix(top, bottom, s.y);
 });
+
+export function signedNoiseNode(point: Node<'vec2'>, shift: number): Node<'float'> {
+	return valueNoiseNode(point.add(vec2(shift, shift * 0.37)))
+		.mul(2)
+		.sub(1);
+}

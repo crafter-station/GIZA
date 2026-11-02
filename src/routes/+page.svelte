@@ -230,11 +230,13 @@ onMount(() => {
 			src="/images/pyramid-sign.webp"
 			alt=""
 			aria-hidden="true"
-			class="h-8 w-14 shrink-0 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
+			class="h-7 w-11 shrink-0 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)] sm:h-8 sm:w-14"
 		>
 		<div>
 			<h1 class="font-display text-2xl leading-none font-semibold tracking-wide">Giza</h1>
-			<p class="mt-0.5 text-[10px] tracking-[0.25em] text-gold-light/90 uppercase">The pyramids, block by block</p>
+			<p class="mt-0.5 hidden text-[10px] tracking-[0.25em] text-gold-light/90 uppercase sm:block">
+				The pyramids, block by block
+			</p>
 		</div>
 	</header>
 	{#if !$engineState.inspecting}

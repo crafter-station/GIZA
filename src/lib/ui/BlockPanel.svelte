@@ -52,7 +52,7 @@ const name = $derived(ROYAL_NAMES[state.target].value);
 </script>
 
 <aside
-	class="papyrus custom-scrollbar fixed top-20 right-4 left-4 max-h-[calc(100svh-11.5rem)] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:left-auto sm:w-84"
+	class="papyrus custom-scrollbar fixed top-20 right-4 left-4 z-20 max-h-[42svh] overflow-y-auto overscroll-contain rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:left-auto sm:max-h-[calc(100svh-11.5rem)] sm:w-84"
 	aria-label="Deconstruction controls"
 	data-lenis-prevent
 >

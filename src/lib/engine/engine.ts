@@ -358,6 +358,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			object.levels[1].distance = placedPyramids[i].lodDistance * TIER_SETTINGS[tier].pyramidDetail;
 		});
 		publish('tier', tier);
+		terrain.setDetailDistance(TIER_SETTINGS[tier].terrainDetailFar);
 		patch({ tier, progress: progressFrom, step: `Cutting blocks (${tier})` });
 		const layout = await requestLayout(worker, {
 			shape: shapeOf(target),
@@ -531,6 +532,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 					...frames.summary(),
 					backend,
 					tier,
+					gpuMs: Math.round(((stats as { totalGpuDuration?: number } | null)?.totalGpuDuration ?? 0) * 10) / 10,
+					computeMs:
+						Math.round(((stats as { totalGpuDurationCompute?: number } | null)?.totalGpuDurationCompute ?? 0) * 10) /
+						10,
 					blocks: field?.layout.count ?? 0,
 					geometries: memory.geometries,
 					textures: memory.textures
