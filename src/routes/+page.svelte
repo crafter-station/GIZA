@@ -183,8 +183,9 @@ onMount(() => {
 
 <canvas
 	bind:this={canvas}
-	class="fixed inset-0 h-svh w-full touch-none"
-	aria-label="3D view of the Giza Plateau"
+	class="fixed inset-0 h-svh w-full touch-none outline-none"
+	aria-label="3D view of the Giza Plateau. In free exploration, drag to orbit, right-drag or two fingers to move over the ground, scroll to move towards the pointer, and use the arrow keys after clicking the scene."
+	tabindex="0"
 ></canvas>
 
 <div class="pointer-events-none" style:height="{CHAPTERS.length * 120}svh" aria-hidden="true"></div>

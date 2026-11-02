@@ -30,6 +30,7 @@ export interface PyramidDesign {
 	courses: readonly number[] | null;
 	height?: number;
 	pyramidionHeight?: number;
+	stepHeight?: number;
 	coreInset: number;
 	concavity: number;
 	missingRate: number;
@@ -146,6 +147,8 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 	const height = design.courses ? total : (design.height ?? 0);
 	if (height <= 0) throw new Error('A smooth pyramid design needs a height');
 	const halfAt = (y: number, base: number) => (base / 2) * (1 - y / design.originalHeight);
+	const faceLevel = (y: number) =>
+		design.stepHeight ? Math.floor(y / design.stepHeight + 1e-6) * design.stepHeight : y;
 	const slopeNormal = (side: (typeof SIDES)[number], base: number): [number, number, number] => {
 		const rise = base / 2 / design.originalHeight;
 		const length = Math.hypot(1, rise);
@@ -245,9 +248,9 @@ export function generatePyramid(design: PyramidDesign): PyramidMeshData {
 		(design.courses ?? []).forEach((thickness, courseIndex) => {
 			const y0 = bottoms[courseIndex];
 			const y1 = y0 + thickness;
-			const half = halfAt(y0, depthBase) - design.coreInset;
-			const halfAbove = halfAt(y1, depthBase) - design.coreInset;
-			const span = halfAt(y0, spanBase) - design.coreInset;
+			const half = halfAt(faceLevel(y0), depthBase) - design.coreInset;
+			const halfAbove = halfAt(faceLevel(y1), depthBase) - design.coreInset;
+			const span = halfAt(faceLevel(y0), spanBase) - design.coreInset;
 			if (half <= 0.3 || span <= 0.3) return;
 			const breaks = new Set<number>([-span, span]);
 			let cursor = -span;

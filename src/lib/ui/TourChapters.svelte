@@ -14,7 +14,7 @@ let { tour }: Props = $props();
 	{@const visibility = tour.mode === 'free' ? 0 : chapterVisibility(tour.t, index, CHAPTERS.length)}
 	<article
 		id={chapter.id}
-		class="papyrus pointer-events-none fixed right-4 bottom-24 left-4 max-w-sm overflow-hidden rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:right-auto sm:left-6"
+		class="papyrus pointer-events-none fixed right-4 bottom-24 left-4 hidden max-w-sm overflow-hidden rounded-sm border border-gold/70 shadow-[0_18px_40px_-18px_rgb(42_31_20/0.7)] sm:block sm:right-auto sm:left-6"
 		style:opacity={visibility}
 		style:transform="translateY({(1 - visibility) * 14}px)"
 		aria-hidden={visibility === 0}

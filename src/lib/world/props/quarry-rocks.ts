@@ -1,8 +1,9 @@
-import { InstancedMesh, type Material, Matrix4, Quaternion, Vector3 } from 'three/webgpu';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { type BufferGeometry, type Material, Matrix4, Mesh, Quaternion, Vector3 } from 'three/webgpu';
 import { QUARRY_TRACE } from '../../data/quarry.ts';
-import { createChamferedBoxGeometry } from '../../monuments/blocks/geometry.ts';
 import { quarryMask } from '../terrain/quarry.ts';
 import { ROCK_VARIANTS, type RockInstance } from './rock-scatter.ts';
+import { type BlockSize, createWeatheredBlockGeometry } from './weathered-block.ts';
 
 const TRACE = QUARRY_TRACE.value;
 const CLUSTERS = 22;
@@ -76,7 +77,6 @@ const BEDROCK_FOOTPRINT: readonly [number, number] = [9, 15];
 const BEDROCK_HEIGHT: readonly [number, number] = [2, 6];
 const BURIED_DEPTH = 3;
 const MONOLITH = { length: 4.6, width: 3.2, height: 2.4, buried: 0.6 } as const;
-const CHAMFER = 0.07;
 const BEDROCK_JITTER = 6;
 const BEDROCK_GAP = 0.3;
 const CAP_SHARE = 0.5;
@@ -130,34 +130,41 @@ export function createBedrockBlocks(
 	blocks: readonly BedrockBlock[],
 	groundAt: (x: number, z: number) => number,
 	material: Material
-): InstancedMesh {
-	const count = blocks.reduce((total, block) => total + (block.cap ? 2 : 1), 0);
-	const mesh = new InstancedMesh(createChamferedBoxGeometry(CHAMFER), material, count);
-	let index = 0;
-	mesh.name = 'quarry-bedrock';
+): Mesh {
 	const matrix = new Matrix4();
 	const rotation = new Quaternion();
 	const position = new Vector3();
-	const scale = new Vector3();
+	const unit = new Vector3(1, 1, 1);
 	const up = new Vector3(0, 1, 0);
-	for (const block of blocks) {
+	const pieces: BufferGeometry[] = [];
+	const place = (size: BlockSize, centre: Vector3, seed: number) => {
+		const piece = createWeatheredBlockGeometry(size, seed);
+		piece.applyMatrix4(matrix.compose(centre, rotation, unit));
+		pieces.push(piece);
+	};
+	blocks.forEach((block, index) => {
 		const corners = [-1, 1].flatMap((sx) =>
 			[-1, 1].map((sz) => groundAt(block.x + (sx * block.length) / 2, block.z + (sz * block.width) / 2))
 		);
 		const bottom = Math.min(...corners) - block.buried;
 		const top = Math.max(...corners) + block.height - block.buried * 0.2;
-		position.set(block.x, (top + bottom) / 2, block.z);
 		rotation.setFromAxisAngle(up, block.yaw);
-		scale.set(block.length, top - bottom, block.width);
-		mesh.setMatrixAt(index++, matrix.compose(position, rotation, scale));
-		if (!block.cap) continue;
+		position.set(block.x, (top + bottom) / 2, block.z);
+		place({ length: block.length, height: top - bottom, width: block.width }, position, 101 + index * 7);
+		if (!block.cap) return;
 		const offset = new Vector3(block.cap.dx, 0, block.cap.dz).applyQuaternion(rotation);
-		position.set(block.x + offset.x, top + block.cap.height / 2 - 0.2, block.z + offset.z);
-		scale.set(block.cap.length, block.cap.height + 0.4, block.cap.width);
-		mesh.setMatrixAt(index++, matrix.compose(position, rotation, scale));
-	}
-	mesh.instanceMatrix.needsUpdate = true;
-	mesh.computeBoundingSphere();
+		position.set(block.x + offset.x, top + block.cap.height / 2 - 0.3, block.z + offset.z);
+		place(
+			{ length: block.cap.length, height: block.cap.height + 0.6, width: block.cap.width },
+			position,
+			503 + index * 11
+		);
+	});
+	const geometry = mergeGeometries(pieces);
+	for (const piece of pieces) piece.dispose();
+	geometry.computeBoundingSphere();
+	const mesh = new Mesh(geometry, material);
+	mesh.name = 'quarry-bedrock';
 	mesh.castShadow = true;
 	mesh.receiveShadow = true;
 	return mesh;

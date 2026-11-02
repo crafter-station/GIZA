@@ -1,3 +1,4 @@
+import { SCHEMATIC_COURSE } from '../../data/block-targets.ts';
 import { KHUFU_SURVIVING_COURSES_M } from '../../data/khufu-courses.ts';
 import { type PyramidVolume, QUEEN_PYRAMIDS } from '../../data/layout.ts';
 import { KHAFRE, KHUFU, KHUFU_OPENINGS, MENKAURE_GRANITE } from '../../data/pyramids.ts';
@@ -62,13 +63,23 @@ const smooth = (volume: PyramidVolume, seed: number, extra: Partial<PyramidDesig
 	...extra
 });
 
-const stepped = (volume: PyramidVolume, steps: number, seed: number): PyramidDesign => ({
+const schematicCourses = (height: number): number[] => {
+	const count = Math.max(1, Math.round(height / SCHEMATIC_COURSE.value));
+	return Array.from({ length: count }, () => height / count);
+};
+
+const ruinedCore = (volume: PyramidVolume, seed: number, extra: Partial<PyramidDesign> = {}): PyramidDesign => ({
 	...smooth(volume, seed),
-	courses: Array.from({ length: steps }, () => volume.currentHeight / steps),
-	coreInset: 0.6,
-	missingRate: 0.06,
-	segmentLength: 2.2
+	courses: schematicCourses(volume.currentHeight),
+	coreInset: 0.8,
+	concavity: 0.15,
+	missingRate: 0.07,
+	segmentLength: 1.9,
+	...extra
 });
+
+const stepped = (volume: PyramidVolume, steps: number, seed: number): PyramidDesign =>
+	ruinedCore(volume, seed, { stepHeight: volume.currentHeight / steps, missingRate: 0.05 });
 
 export function pyramidDesigns(main: readonly PyramidVolume[]): PlacedDesign[] {
 	const byId = new Map(main.map((volume) => [volume.id, volume]));
@@ -112,9 +123,7 @@ export function pyramidDesigns(main: readonly PyramidVolume[]): PlacedDesign[] {
 			design:
 				volume.id === 'g3b' || volume.id === 'g3c'
 					? stepped(volume, 4, 3000 + index)
-					: smooth(volume, 3000 + index, {
-							...(['g1a', 'g1b', 'g1c'].includes(volume.id) ? { pyramidionHeight: 1.5 } : {})
-						}),
+					: ruinedCore(volume, 3000 + index),
 			lodDistance: 900
 		}))
 	];

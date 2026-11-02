@@ -37,7 +37,7 @@ function lattice(x: number, y: number, z: number, seed: number): number {
 	return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
-function valueNoise3(p: Vector3, seed: number): number {
+export function valueNoise3(p: Vector3, seed: number): number {
 	const x0 = Math.floor(p.x);
 	const y0 = Math.floor(p.y);
 	const z0 = Math.floor(p.z);

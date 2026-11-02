@@ -836,3 +836,10 @@ Bloque 5 implementado: perfilado, optimización y revisión.
   - La aureola del sol, con sus 9 lecturas de profundidad por píxel, solo se evalúa cuando el sol es visible, mediante una rama uniforme.
 - **Tests**: 104 unitarios en verde, y el proyecto de componentes en navegador no tiene tests. La suite E2E de Chromium se interrumpió al cerrarse la sesión anterior y, a petición del propietario, no se volvió a lanzar. `quality.spec.ts` se actualizó al nuevo nivel inicial táctil, sin ejecutarlo.
 - **Límite conocido**: en gráficas integradas modestas el nivel bajo ronda los 15 fps. El siguiente paso sería precalcular en una textura la altura de detalle (dunas, crestas y cantera) en el worker del terreno, para que las normales no evalúen ruido por píxel.
+
+Ajustes tras la revisión del propietario:
+- **Moverse en «Explorar libremente»**: el paneo de OrbitControls era en el plano de la pantalla, así que con la cámara casi horizontal no se podía avanzar sobre la meseta. Ahora se panea paralelo al suelo (`screenSpacePanning = false`) y la rueda acerca hacia el cursor (`zoomToCursor`). Además, las flechas del teclado desplazan la cámara; escuchan en el lienzo, que es enfocable, para no interferir con la navegación por teclado de los controles de Bits UI.
+- **Pirámides de las reinas**:
+  - G1-a/b/c y G3-a pasan de caras lisas con piramidión dorado a núcleos de mampostería por hiladas esquemáticas de 0,68 m (`SCHEMATIC_COURSE`), con bloques perdidos y erosión de aristas, sin piramidión.
+  - G3-b/c conservan sus 4 plataformas documentadas, pero cada una está hecha de hiladas con caras verticales (nueva opción `stepHeight` del generador).
+- **Roca madre de la cantera**: cada bloque es ahora geometría propia en metros (`weathered-block.ts`), con estratos horizontales erosionados (capas de 0,45–0,85 m y surcos de hasta 0,3 m), aristas redondeadas irregulares y picado, todo fusionado en una sola malla. Es una forma procedural inspirada en la caliza estratificada de la formación Mokattam, no un levantamiento.

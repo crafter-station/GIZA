@@ -105,6 +105,7 @@ const SUN_REFERENCE_INTENSITY = 3.4;
 const SAND_HISS_HEIGHT = 120;
 const DRONE_CENTER_TOWARD_KHAFRE = 0.35;
 const QUARRY_SEED = 2760;
+const KEY_PAN_SPEED = 25;
 const TARGET_VIEW_DISTANCE = 1.9;
 const TARGET_VIEW_HEIGHT = 0.75;
 const TARGET_FLIGHT_SECONDS = 2.4;
@@ -217,6 +218,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const camera = new PerspectiveCamera(45, 1, 1, 20_000);
 	const controls = new OrbitControls(camera, canvas);
 	controls.enableDamping = true;
+	controls.screenSpacePanning = false;
+	controls.zoomToCursor = true;
+	controls.keyPanSpeed = KEY_PAN_SPEED;
+	controls.listenToKeyEvents(canvas);
 	controls.maxPolarAngle = Math.PI * 0.49;
 	controls.minDistance = 40;
 	controls.maxDistance = 4000;
@@ -888,7 +893,6 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			disposeRockField(rocks);
 			disposeRockField(quarryBlocks);
 			quarryBedrockBlocks.geometry.dispose();
-			quarryBedrockBlocks.dispose();
 			disposeComplex(complex);
 			valley.dispose();
 			reconstruction.dispose();
