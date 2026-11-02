@@ -13,7 +13,7 @@ const percent = $derived(Math.round(progress * 100));
 <div class="papyrus pointer-events-none fixed inset-0 grid place-items-center">
 	<div class="w-80 text-center">
 		<img
-			src="/images/pyramid-sign.webp"
+			src="/images/pyramid-sign-black.webp"
 			alt=""
 			aria-hidden="true"
 			class="mx-auto block h-24 w-44 object-contain drop-shadow-[0_1px_4px_rgba(0,0,0,0.4)]"
