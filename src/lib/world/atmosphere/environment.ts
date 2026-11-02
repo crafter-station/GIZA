@@ -17,6 +17,7 @@ import {
 	type WebGPURenderer
 } from 'three/webgpu';
 import type { Tier } from '../../app/quality.ts';
+import { GIZA_ORIGIN } from '../../data/geo.ts';
 import {
 	celestialState,
 	LIGHTING_LOOKS,
@@ -25,6 +26,7 @@ import {
 	nearestPreset,
 	sampleLighting
 } from './lighting.ts';
+import { StarField } from './stars.ts';
 
 const REBAKE_HOURS = 0.75;
 const REBAKE_INTERVAL_MS = 500;
@@ -48,6 +50,7 @@ export class Environment {
 	private bakedAt = Number.NEGATIVE_INFINITY;
 	private readonly csm: CSMShadowNode;
 	private readonly moonDisc = new Mesh(new SphereGeometry(1, 16, 12), new MeshBasicNodeMaterial({ color: 0xd9e5f2 }));
+	private readonly stars = new StarField(GIZA_ORIGIN.lat);
 	private readonly night = uniform(0);
 	private readonly skyRadiance = uniform(0.18);
 	private readonly haze = uniform(0);
@@ -120,7 +123,8 @@ export class Environment {
 			this.fill.target,
 			this.shafts,
 			this.shafts.target,
-			this.moonDisc
+			this.moonDisc,
+			this.stars.mesh
 		);
 		scene.background = null;
 		scene.fogNode = fog(
@@ -200,6 +204,7 @@ export class Environment {
 		this.moonDisc.position.fromArray(this.celestial.moonDirection).multiplyScalar(7000).add(this.camera.position);
 		this.moonDisc.visible = look.night > 0.01 && this.celestial.moon.altitude > 0;
 		this.moonDisc.material.color.setScalar(look.night * 2);
+		this.stars.update(this.camera.position, this.celestial.date, GIZA_ORIGIN.lon, look.night);
 		this.scene.environmentIntensity = look.environmentIntensity;
 		if (this.csm.camera && (this.lastFov !== this.camera.fov || this.lastAspect !== this.camera.aspect)) {
 			this.csm.updateFrustums();
@@ -239,5 +244,7 @@ export class Environment {
 			light.target.removeFromParent();
 		}
 		this.hemisphere.removeFromParent();
+		this.stars.mesh.removeFromParent();
+		this.stars.dispose();
 	}
 }

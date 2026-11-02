@@ -5,6 +5,7 @@ Heavy sources used to build the runtime assets in `static/`. They are never serv
 | Folder                        | Content                                                            | Built by                                 |
 | ----------------------------- | ------------------------------------------------------------------ | ---------------------------------------- |
 | `dem/`                        | Copernicus GLO-30 crop of the Giza Plateau and a hillshade preview | `node tools/build-terrain.ts <tile.tif>` |
+| `stars/`                      | Yale Bright Star Catalogue (5th revised edition)                    | `node tools/build-stars.ts`              |
 | `models/`                     | Source 3D models with their license notes                          | `tools/optimize-models` (Phase 7)        |
 | `photos/`                     | Licensed reference and content photos                              | `tools/build-images.ts` (Phase 9)        |
 | `illustrations/`, `textures/` | Generated illustrations and macro textures (see plan §11)          | `tools/build-images.ts`                  |

@@ -109,6 +109,20 @@ export const SOURCES = {
 		year: 2026,
 		url: 'https://services1.arcgis.com/qN3V93cYGMKQCOxL/ArcGIS/rest/services/GIZA_Vectors_for_Web/FeatureServer'
 	},
+	hoffleitWarren1991: {
+		author: 'Dorrit Hoffleit, Wayne H. Warren Jr.',
+		title: 'The Bright Star Catalogue, 5th Revised Edition (CDS V/50)',
+		year: 1991,
+		publisher: 'NASA Astronomical Data Center',
+		url: 'http://tdc-www.harvard.edu/catalogs/bsc5.html'
+	},
+	capitaine2003: {
+		author: 'N. Capitaine, P. T. Wallace, J. Chapront',
+		title: 'Expressions for IAU 2000 precession quantities',
+		year: 2003,
+		publisher: 'Astronomy & Astrophysics 412: 567–586',
+		doi: '10.1051/0004-6361:20031539'
+	},
 	copernicusDem: {
 		author: 'European Space Agency, Airbus',
 		title: 'Copernicus DEM GLO-30 (tile N29 E031)',
