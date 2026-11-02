@@ -6,7 +6,7 @@ Este documento recoge **decisiones**, no opciones. Si una decisión se cambia, s
 
 **Idioma y estilo**: este plan es el único archivo en español. Todo lo demás (código, identificadores, documentación, commits y textos de la interfaz) se escribe en **inglés**, y el código **no lleva comentarios** (ni JSDoc). Reglas recogidas en `AGENTS.md`.
 
-**Estado**: ✅ Fases 0 a 7 concluidas · 2026-11-01. El detalle está en §10.
+**Estado**: ✅ Fases 0 a 8 concluidas · 2026-11-01. El detalle está en §10.
 
 ---
 
@@ -522,7 +522,7 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ✅ **Hipótesis de rampa** (Bits UI Select): recta, en zigzag, en espiral (Lehner 1997) e interna (Brier y Houdin 2008), cada una rotulada como **hipótesis** con su resumen. Se dibujan como losas esquemáticas (pendiente 1:10, 8 m de ancho, la interna 12 m dentro de las caras y visible a través de la sillería) que crecen con la obra; el panel dice que la pendiente y el ancho son elecciones visuales. Geometría pura y probada en `src/lib/monuments/construction/ramps.ts`.
 - ✅ **Vista por origen de la piedra**: corta la mitad este, muestra la envolvente original del **revestimiento de Tura** como un casco translúcido y deja a la vista el **granito de Asuán** de la Cámara del Rey, con una leyenda de tres orígenes con fuentes (caliza local de la cantera sur, caliza de Tura según el Diario de Merer, granito de Asuán a más de 800 km).
 - ✅ **E2E** `tests/e2e/construction.spec.ts` (línea de tiempo, rampa, leyenda y reinicio sin errores de consola), además del ciclo de `home.spec.ts`.
-- ➡️ Polvo saliendo de las juntas en la anticipación y retumbo sonoro: pasan a la Fase 8 (partículas y audio).
+- ✅ Polvo saliendo de las juntas en la anticipación y retumbo sonoro: hechos en la Fase 8.
 - **Hecho cuando**: deconstruir → explorar → extraer → derrumbar → reensamblar funciona 10 veces seguidas sin fugas de memoria y dentro de presupuesto (✅ medido), y están todas las acciones de §3.3 (✅).
 
 ### Fase 7 — Esfinge, entorno y vegetación ✅
@@ -532,21 +532,19 @@ Leyenda: ✅ concluida · ⬜ pendiente · ⚠️ concluida con observaciones.
 - ✅ Verificación: `pnpm check` sin errores ni avisos; 15 pruebas focalizadas de posición, línea temporal y cámara; E2E en Chromium del teclado y la reversibilidad; revisión visual WebGPU del valle y la reconstrucción, sin errores de consola.
 - **Hecho cuando**: ✅ el modo «Antes / Ahora» funciona como transición continua.
 
-### Fase 8 —-Atmósfera viva y sonido ⬜
-- Arena arrastrada, polvo en haces, calor en el horizonte, antorchas, noche con cielo de 2560 a. C.
-- Ambiente sonoro (viento, arena, interior de piedra, retumbo de la deconstrucción, impactos del derrumbe), activado solo tras un gesto.
-
-### Fase 9 —-Narrativa, UI y contenido ⬜
-- Componentes Svelte: capítulos, panel de pirámide, Inspector, línea de tiempo, menú, plano, créditos y fuentes; tipografía con SplitText; secciones editoriales (materiales, cifras).
-- Textos definitivos en inglés (`en.json`, fuente de verdad) y su traducción al español (`es.json`); accesibilidad (teclado, foco, lectores de pantalla, alternativa HTML de cada hotspot).
+### Fase 8 — Atmósfera viva y sonido ✅ (concluida el 2026-11-01)
+- ✅ **Cielo de 2560 a. C.** (`src/lib/data/sky.ts`, `tools/build-stars.ts`, `src/lib/world/atmosphere/stars.ts`): las 2 068 estrellas del *Bright Star Catalogue* (Hoffleit y Warren 1991, en `assets-src/stars/` con su README) más brillantes que la magnitud 5,2 se llevan de J2000 a 2560 a. C. con su movimiento propio y la precesión IAU 2006 (P03, Capitaine y otros 2003). Comprobación: Thuban queda a 0,2° del polo en 2830 a. C. (la literatura da ≈ 10′) y a 1,3° en 2560 a. C.; Polaris baja a 64,8° de declinación. Se dibujan como sprites instanciados con tamaño y color según magnitud y B−V, giradas por la hora sidérea local de la escena y la latitud de Giza, y aparecen con la noche. `pnpm build:stars` regenera los datos.
+- ✅ **Calor en el horizonte**: distorsión de pantalla en el pipeline, ponderada por la distancia (700–3 500 m) y por un valor `heat` de cada luz (mediodía 1, ocaso 0,35, amanecer 0,15, noche 0).
+- ✅ **Arena arrastrada**: vetas de arena clara que avanzan con el viento del norte sobre el terreno, con rachas de 17 s, en el material del suelo (`src/lib/world/atmosphere/wind.ts` comparte la dirección con las ondulaciones).
+- ✅ **Polvo en haces**: motas GPU (compute TSL) en una caja de 70 m alrededor de la cámara, con dispersión hacia delante respecto al sol y mezcla aditiva, de modo que brillan a contraluz y dentro de los rayos (1 500 / 4 000 / 8 000 / 12 000 según el nivel).
+- ✅ **Polvo de las juntas** al deconstruir: una ráfaga que sale de las cuatro caras de Keops durante la anticipación (pendiente de la Fase 6).
+- ✅ **Antorchas** de noche a lo largo de las tres calzadas, cada 40 m y a ambos lados, con llama parpadeante y hasta 4 luces puntuales que siguen a las antorchas más cercanas a la cámara (ninguna en nivel bajo ni en WebGL2). Es una **ilustración de ambiente**, no un sistema de iluminación documentado. Las luces nunca se ocultan (solo cambia su intensidad) para no recompilar los materiales.
+- ✅ **Ambiente sonoro** (`src/lib/audio/soundscape.ts`, Web Audio sin archivos de audio): viento con rachas, siseo de arena cerca del suelo, zumbido de piedra con reverberación cuando se ven los interiores, retumbo en la deconstrucción e impactos del derrumbe detectados al aterrizar los cuerpos de Rapier (`src/lib/physics/landings.ts`, limitados a 3 cada 70 ms). Solo arranca al pulsar el botón de sonido junto al selector de luz (gesto del usuario); está apagado por defecto.
+- Retirada la tarjeta «Reconstructing Giza / Then / Now»: la reconstrucción sigue al recorrido sin control manual.
 
 ### Fase 10 — Optimización y QA ⬜
-- Matriz de dispositivos (Chrome, Edge, Safari, Firefox; Windows, macOS, iOS, Android); ajuste de niveles; regresión visual con Playwright (`?t=`); trazas de rendimiento; revisión `code-review` completa.
+- Matriz de dispositivos (Chrome, Edge, Safari, Firefox; Windows, macOS, iOS, Android); ajuste de niveles; trazas de rendimiento; revisión `code-review` completa.
 - **Hecho cuando**: se cumplen los presupuestos de §8 en los dispositivos de referencia, con las mediciones anotadas.
-
-### Fase 11 — Publicación ⬜
-- Build en Vercel con cabeceras de caché inmutable y compresión Brotli; imagen OG (captura real de la app); metadatos; página de créditos y licencias (modelos, texturas, fuentes, datos DEM, citas).
-
 ---
 
 ## 11. Imágenes que se necesitan
@@ -580,3 +578,19 @@ El contenido factual usa **fotos reales con licencia** (Wikimedia Commons, domin
 | Licencia y fidelidad de la Esfinge | Conservar el modelo definitivo de la maqueta histórica (CC BY 4.0); identificar su procedencia en la interfaz y no atribuirle precisión de escaneo del monumento |
 | El DEM solo cubre hasta 30° N | Cuadrado desplazado al sur; para ampliar al norte, descargar la tesela N30 E031 y unirla en `build-terrain.ts` |
 | Peso de descarga | KTX2, meshopt, carga por regiones, presupuestos de §8 en CI con `check-assets` |
+
+---
+
+## 13. Plan de fidelidad visual y vida del lugar
+
+Este trabajo complementa las fases 8 y 10. Se construye por escalas: el DEM fija la silueta regional; la geometría cercana aporta irregularidad visible; las normales, el color y la rugosidad representan estratos, fisuras finas y arena sin multiplicar polígonos. Las superficies interpretativas se identifican como tales. La Gran Esfinge definitiva no se sustituye.
+
+| Bloque | Entrega | Criterio de aceptación |
+| --- | --- | --- |
+| **1. Suelo de roca y arena** 🔄 | Relieve erosionado de poca profundidad donde aflora la roca, fisuras y estratos en el material TSL; misma altura en CPU y GPU; protección de las plataformas y de la franja del valle | El suelo deja de verse uniforme a escala humana; cámara, rocas y monumentos no flotan ni se hunden; sin textura descargable ni nueva pasada de render |
+| **2. Huellas de cantera** ⬜ | Cortes y terrazas de extracción en sectores aproximados al sur de Keops y hacia el Campo Central; bloques de descarte y transición al wadi | Siluetas y ubicación contrastadas con la cartografía arqueológica; trazado interpretativo rotulado, sin inventar una planta exacta |
+| **3. Piedra construida** ⬜ | Diferenciar caliza local, revestimiento fino de Tura, granito y mampostería con variación a escala de bloque y de detalle; revisar juntas, roturas, cantos y oclusión | Pirámides, templos y mastabas mantienen sus dimensiones y se leen de cerca y de lejos en «Antes» y «Ahora» |
+| **4. Vida y movimiento** ⬜ | Integrar con la fase 8 en curso: viento, polvo, sombras y pocas aves distantes si aportan escala; evitar duplicar sistemas de partículas | Movimiento sobrio, sin tapar el texto ni crear bucles de animación adicionales; calidad baja y movimiento reducido conservan legibilidad |
+| **5. Perfilado y revisión** ⬜ | Capturas comparables, WebGPU y respaldo WebGL2, móvil, coste por nivel de calidad y limpieza de recursos | Las mejoras no rompen los presupuestos de §8 ni introducen errores de consola o regresiones de navegación |
+
+Base documental para el bloque 1: [AERA, geología de la Esfinge](https://aeraweb.org/geology-of-the-sphinx/) describe la caliza Mokkatam y las capas de dureza alterna; [Kawae y Kamei, *Geomorphological Aspects at the Giza Plateau*](https://gizamedia.rc.fas.harvard.edu/documents/kawae_jg_120_2011.pdf) documenta fisuras y vaguadas en la formación Maadi al sur y la cantera de Keops al sur de la pirámide; el [Giza Plateau Mapping Project](https://isac.uchicago.edu/sites/oi.uchicago.edu/files/uploads/shared/docs/Publications/Annual-Reports/2016-2017/AR-2016-2017-Giza-Plateau-Mapping.pdf) registra estratos, cortes y zonas de cantera. Ninguna de estas fuentes proporciona un mapa centimétrico del microrelieve añadido: su forma procedural es una representación visual, no una medición arqueológica.

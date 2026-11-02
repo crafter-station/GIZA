@@ -1,7 +1,7 @@
 import RAPIER from '@dimforge/rapier3d-simd-compat';
-import { BODY_STRIDE, type CollapseMessage, type CollapseStart, STATE_STRIDE } from './protocol.ts';
+import { BODY_STRIDE, type CollapseMessage, type CollapseStart, PHYSICS_STEP, STATE_STRIDE } from './protocol.ts';
 
-const STEP = 1 / 60;
+const STEP = PHYSICS_STEP;
 const SPILL_SPEED = 7;
 
 function outward(x: number, z: number): [number, number, number] {

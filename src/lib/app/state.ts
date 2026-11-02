@@ -26,6 +26,7 @@ export interface EngineState {
 	build: number | null;
 	ramp: RampId | null;
 	origins: boolean;
+	sound: boolean;
 	forceField: boolean;
 	collapsed: boolean;
 	error: string | null;
@@ -47,6 +48,7 @@ export const INITIAL_ENGINE_STATE: EngineState = {
 	build: null,
 	ramp: 'spiral',
 	origins: false,
+	sound: false,
 	forceField: false,
 	collapsed: false,
 	error: null

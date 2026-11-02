@@ -2,16 +2,19 @@
 import Icon from '@iconify/svelte';
 import chevronDown from '@iconify-icons/lucide/chevron-down';
 import { Select } from 'bits-ui';
+import type { Snippet } from 'svelte';
 import { isLightingMode, LIGHTING_OPTIONS, type LightingMode } from '#lib/world/atmosphere/lighting.ts';
 
 let {
 	value,
 	disabled = false,
-	onchange
+	onchange,
+	children
 }: {
 	value: LightingMode;
 	disabled?: boolean;
 	onchange: (mode: LightingMode) => void;
+	children?: Snippet;
 } = $props();
 
 const SIGNS: Record<LightingMode, string> = {
@@ -24,7 +27,8 @@ const SIGNS: Record<LightingMode, string> = {
 const label = $derived(LIGHTING_OPTIONS.find((option) => option.value === value)?.label ?? 'Follow the journey');
 </script>
 
-<div class="fixed top-4 right-4 z-30 flex flex-col items-end" data-testid="lighting-controls">
+<div class="fixed top-4 right-4 z-30 flex items-start gap-2" data-testid="lighting-controls">
+	{@render children?.()}
 	<Select.Root
 		type="single"
 		{value}

@@ -9,6 +9,7 @@ import BlockPanel from '#lib/ui/BlockPanel.svelte';
 import Inspector from '#lib/ui/Inspector.svelte';
 import LightingControls from '#lib/ui/LightingControls.svelte';
 import Loader from '#lib/ui/Loader.svelte';
+import SoundToggle from '#lib/ui/SoundToggle.svelte';
 import TourChapters from '#lib/ui/TourChapters.svelte';
 import TourNav from '#lib/ui/TourNav.svelte';
 import type { LightingMode } from '#lib/world/atmosphere/lighting.ts';
@@ -144,7 +145,9 @@ onMount(() => {
 			lighting = mode;
 			engine?.setLighting(mode);
 		}}
-	/>
+	>
+		<SoundToggle pressed={$engineState.sound} disabled={!ready} onchange={(enabled) => engine?.setSound(enabled)} />
+	</LightingControls>
 	<header
 		class="pointer-events-none fixed top-4 left-4 flex items-center gap-3 rounded-sm border border-gold/60 bg-lapis-deep/85 py-2 pr-4 pl-3 text-papyrus shadow-lg backdrop-blur-sm"
 	>

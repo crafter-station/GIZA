@@ -15,6 +15,7 @@ import {
 import type { Flags } from '../app/flags.ts';
 import { type Backend, clampTier, initialTier, TIER_SETTINGS, type Tier, tierAfterBenchmark } from '../app/quality.ts';
 import { type EngineState, engineState } from '../app/state.ts';
+import { Soundscape } from '../audio/soundscape.ts';
 import { courseAtProgress, cumulativeCourseVolume, RAMP_DRAWING, type RampId } from '../data/construction.ts';
 import { KHUFU_SURVIVING_COURSES_M } from '../data/khufu-courses.ts';
 import { ALL_PYRAMIDS, FLATTENED_FOOTPRINTS, PYRAMIDS, SPHINX_PLACEMENT } from '../data/layout.ts';
@@ -38,15 +39,18 @@ import {
 	geometryFromMeshData
 } from '../monuments/pyramid/pyramid-mesh.ts';
 import { loadSphinx } from '../monuments/sphinx/sphinx.ts';
-import { BODY_STRIDE } from '../physics/protocol.ts';
+import { LandingDetector } from '../physics/landings.ts';
+import { BODY_STRIDE, PHYSICS_STEP } from '../physics/protocol.ts';
 import { CHAPTERS, resolveCameraKeys } from '../tour/chapters.ts';
 import { TourDirector } from '../tour/director.ts';
+import { DustMotes, JointDust } from '../world/atmosphere/dust.ts';
 import { Environment } from '../world/atmosphere/environment.ts';
 import type { LightingMode } from '../world/atmosphere/lighting.ts';
 import { AncientReconstruction } from '../world/era/reconstruction.ts';
 import { tourEra } from '../world/era/timeline.ts';
 import { scatterRocks } from '../world/props/rock-scatter.ts';
 import { createRockField, disposeRockField } from '../world/props/rocks.ts';
+import { Torches, torchPositions } from '../world/props/torches.ts';
 import { createGroundSampler } from '../world/terrain/relief.ts';
 import { flattenFootprints } from '../world/terrain/shape.ts';
 import { loadHeightmap, Terrain } from '../world/terrain/terrain.ts';
@@ -67,6 +71,7 @@ export interface Engine {
 	setBuild(progress: number | null): void;
 	setRamp(ramp: RampId | null): void;
 	setOrigins(enabled: boolean): void;
+	setSound(enabled: boolean): void;
 	setForceField(enabled: boolean): void;
 	inspect(index: number | null): void;
 	collapse(): Promise<void>;
@@ -79,6 +84,9 @@ const BENCHMARK_FRAMES = 90;
 const CLICK_TOLERANCE_PX = 5;
 const INSPECT_DISTANCE = 14;
 const WEBGL_PHYSICS_BODIES = 800;
+const TORCH_SPACING = 40;
+const SUN_REFERENCE_INTENSITY = 3.4;
+const SAND_HISS_HEIGHT = 120;
 
 const KHUFU_SHAPE = {
 	baseSide: KHUFU.baseSide.value,
@@ -243,6 +251,36 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	environment.update(director.t, true);
 	let pipeline = new AtmospherePipeline(renderer, scene, camera, environment, tier, flags.noAo);
 	let pipelineTier = tier;
+	const torches = new Torches(
+		torchPositions(complexLayout.causeways, TORCH_SPACING),
+		groundAt,
+		backend === 'webgpu' ? TIER_SETTINGS[tier].torchLights : 0
+	);
+	scene.add(torches.group, torches.flames, ...torches.lights);
+	const motes = new DustMotes(TIER_SETTINGS[tier].dustMotes);
+	scene.add(motes.mesh);
+	const jointDust = new JointDust(TIER_SETTINGS[tier].jointDust, {
+		baseSide: KHUFU_SHAPE.baseSide,
+		height: KHUFU_SHAPE.originalHeight
+	});
+	jointDust.mesh.position.copy(khufuVolume.position);
+	scene.add(jointDust.mesh);
+	let soundscape: Soundscape | null = null;
+	const landings = new LandingDetector();
+	const updateAtmosphere = (dt: number) => {
+		const night = environment.look.night;
+		const daylight = Math.min(environment.sun.intensity / SUN_REFERENCE_INTENSITY, 1);
+		torches.update(camera.position, night);
+		motes.step(renderer, dt, camera.position, environment.sunDirection, daylight);
+		jointDust.step(renderer, dt, 0.25 + daylight * 0.75);
+		if (!soundscape) return;
+		const height = camera.position.y - groundAt(camera.position.x, camera.position.z);
+		soundscape.setMix({
+			wind: 1 - night * 0.45,
+			sand: (1 - night) * Math.max(0, 1 - height / SAND_HISS_HEIGHT),
+			interior: interior.visible ? 1 : 0
+		});
+	};
 	let disposed = false;
 
 	const resize = () => {
@@ -369,9 +407,13 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 	const pointer = new Vector2();
 	let forceField = false;
 	const physicsWorker = new Worker(new URL('../physics/collapse.worker.ts', import.meta.url), { type: 'module' });
-	physicsWorker.onmessage = (event: MessageEvent<Float32Array>) => field?.applyPhysics(event.data);
+	physicsWorker.onmessage = (event: MessageEvent<Float32Array>) => {
+		field?.applyPhysics(event.data);
+		if (soundscape) for (const speed of landings.detect(event.data, PHYSICS_STEP)) soundscape.impact(speed);
+	};
 	const stopCollapse = () => {
 		physicsWorker.postMessage({ type: 'stop' });
+		landings.reset();
 		field?.stopPhysics();
 		patch({ collapsed: false });
 	};
@@ -412,6 +454,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			}
 		}
 		environment.update(director.t);
+		updateAtmosphere(dt);
 		pipeline.render(director.t);
 		stats?.update();
 		if (flags.perf && time - lastPublished > 1000) {
@@ -560,6 +603,8 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				{ value: 1, duration: ANTICIPATION_SECONDS / 2, yoyo: true, repeat: 1, ease: 'sine.inOut' }
 			);
 			director.shake(ANTICIPATION_SECONDS, 0.35);
+			jointDust.trigger(renderer);
+			soundscape?.rumble(ANTICIPATION_SECONDS + 1.6);
 		}
 		field.setDeconstructed(deconstructed);
 		if (!deconstructed) {
@@ -586,6 +631,14 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			ramp = next;
 			updateRamps();
 			patch({ ramp: next });
+		},
+		setSound: (enabled) => {
+			if (enabled && !soundscape) soundscape = new Soundscape();
+			if (!enabled && soundscape) {
+				soundscape.dispose();
+				soundscape = null;
+			}
+			patch({ sound: enabled });
 		},
 		setOrigins: (enabled) => {
 			if (field) field.section.value = enabled ? 1 : 0;
@@ -637,6 +690,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 				);
 			}
 			field.startPhysics(indices);
+			landings.reset();
 			physicsWorker.postMessage({ type: 'start', bodies, ground: 0 }, [bodies.buffer]);
 			patch({ collapsed: true });
 		},
@@ -684,6 +738,10 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			}
 			masonry.dispose();
 			ramps.dispose();
+			soundscape?.dispose();
+			torches.dispose();
+			motes.dispose();
+			jointDust.dispose();
 			disposeCasingGhost(casing);
 			(interior.children[0] as Mesh | undefined)?.geometry.dispose();
 			for (const material of Object.values(interiorMaterials)) material.dispose();
