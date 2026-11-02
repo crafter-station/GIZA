@@ -358,7 +358,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 			object.levels[1].distance = placedPyramids[i].lodDistance * TIER_SETTINGS[tier].pyramidDetail;
 		});
 		publish('tier', tier);
-		terrain.setDetailDistance(TIER_SETTINGS[tier].terrainDetailFar);
+		terrain.setQuality(TIER_SETTINGS[tier].terrainDetailFar, TIER_SETTINGS[tier].terrainLodBias);
 		patch({ tier, progress: progressFrom, step: `Cutting blocks (${tier})` });
 		const layout = await requestLayout(worker, {
 			shape: shapeOf(target),
@@ -561,7 +561,7 @@ export async function startEngine(canvas: HTMLCanvasElement, flags: Flags): Prom
 
 	let pointerDown: { x: number; y: number } | null = null;
 	const pickAt = async (event: PointerEvent): Promise<number | null | undefined> => {
-		if (!field || !blocksVisible()) return undefined;
+		if (!looping || !field || !blocksVisible()) return undefined;
 		const rect = canvas.getBoundingClientRect();
 		return picker.pick(renderer, camera, event.clientX - rect.left, event.clientY - rect.top, rect.width, rect.height);
 	};

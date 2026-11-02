@@ -14,6 +14,7 @@ export interface TierSettings {
 	jointDust: number;
 	torchLights: number;
 	terrainDetailFar: number;
+	terrainLodBias: number;
 }
 
 export const TIER_SETTINGS: Record<Tier, TierSettings> = {
@@ -26,7 +27,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		dustMotes: 1500,
 		jointDust: 1500,
 		torchLights: 0,
-		terrainDetailFar: 500
+		terrainDetailFar: 500,
+		terrainLodBias: 1
 	},
 	medium: {
 		blockTarget: 30_000,
@@ -37,7 +39,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		dustMotes: 4000,
 		jointDust: 4000,
 		torchLights: 2,
-		terrainDetailFar: 900
+		terrainDetailFar: 900,
+		terrainLodBias: 0
 	},
 	high: {
 		blockTarget: 70_000,
@@ -48,7 +51,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		dustMotes: 8000,
 		jointDust: 8000,
 		torchLights: 4,
-		terrainDetailFar: 1600
+		terrainDetailFar: 1600,
+		terrainLodBias: 0
 	},
 	ultra: {
 		blockTarget: 140_000,
@@ -59,7 +63,8 @@ export const TIER_SETTINGS: Record<Tier, TierSettings> = {
 		dustMotes: 12000,
 		jointDust: 12000,
 		torchLights: 4,
-		terrainDetailFar: 1600
+		terrainDetailFar: 1600,
+		terrainLodBias: 0
 	}
 };
 
@@ -76,7 +81,7 @@ export function clampTier(tier: Tier, backend: Backend): Tier {
 }
 
 export function initialTier(backend: Backend, coarsePointer: boolean): Tier {
-	return clampTier(coarsePointer ? 'medium' : 'ultra', backend);
+	return clampTier(coarsePointer ? 'low' : 'ultra', backend);
 }
 
 export function lowerTier(tier: Tier): Tier | null {

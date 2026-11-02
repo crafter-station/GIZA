@@ -93,7 +93,7 @@ export class AtmospherePipeline {
 		renderer.toneMapping = AgXToneMapping;
 		renderer.toneMappingExposure = 1;
 		renderer.outputColorSpace = SRGBColorSpace;
-		this.scenePass = pass(scene, camera, { type: HalfFloatType, samples: temporal ? 0 : 4 });
+		this.scenePass = pass(scene, camera, { type: HalfFloatType, samples: temporal || tier === 'low' ? 0 : 4 });
 		this.prePass = !noAo && tier !== 'low' ? pass(scene, camera, { type: HalfFloatType, samples: 0 }) : null;
 		if (this.prePass) this.prePass.setMRT(mrt({ output: normalView }));
 		this.ambientOcclusion = this.prePass

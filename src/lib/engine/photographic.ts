@@ -1,7 +1,9 @@
 import {
 	exp,
+	Fn,
 	float,
 	hash,
+	If,
 	mix,
 	pow,
 	screenCoordinate,
@@ -76,25 +78,31 @@ export function filmGrain(display: Node<'vec3'>, amount: Node<'float'>): Node<'v
 }
 
 export function sunFlareNode(sun: SunUniforms, depth: TextureNode): Node<'vec3'> {
-	const aspect = vec2(screenSize.x.div(screenSize.y), 1);
-	let sky: Node<'float'> = float(0);
-	for (const [dx, dy] of OCCLUSION_RINGS) {
-		sky = sky.add(step(SKY_DEPTH, depth.sample(sun.uv.add(vec2(dx, dy))).r));
-	}
-	const open = sky.div(OCCLUSION_RINGS.length).mul(sun.visibility, sun.strength);
-	const distance = screenUV.sub(sun.uv).mul(aspect).length();
-	const aureole = exp(distance.mul(-14))
-		.mul(0.35)
-		.add(exp(distance.mul(-4)).mul(0.04));
-	let ghosts: Node<'vec3'> = vec3(0);
-	const axis = vec2(0.5, 0.5).sub(sun.uv);
-	for (const ghost of GHOSTS) {
-		const centre = sun.uv.add(axis.mul(ghost.along));
-		const reach = screenUV.sub(centre).mul(aspect).length();
-		const disc = float(1).sub(smoothstep(ghost.radius * 0.7, ghost.radius, reach));
-		ghosts = ghosts.add(vec3(...ghost.tint).mul(disc));
-	}
-	return sun.color.mul(aureole.add(ghosts.mul(GHOST_GAIN))).mul(open);
+	return Fn(() => {
+		const flare = vec3(0).toVar();
+		If(sun.visibility.mul(sun.strength).greaterThan(0.001), () => {
+			const aspect = vec2(screenSize.x.div(screenSize.y), 1);
+			let sky: Node<'float'> = float(0);
+			for (const [dx, dy] of OCCLUSION_RINGS) {
+				sky = sky.add(step(SKY_DEPTH, depth.sample(sun.uv.add(vec2(dx, dy))).r));
+			}
+			const open = sky.div(OCCLUSION_RINGS.length).mul(sun.visibility, sun.strength);
+			const distance = screenUV.sub(sun.uv).mul(aspect).length();
+			const aureole = exp(distance.mul(-14))
+				.mul(0.35)
+				.add(exp(distance.mul(-4)).mul(0.04));
+			let ghosts: Node<'vec3'> = vec3(0);
+			const axis = vec2(0.5, 0.5).sub(sun.uv);
+			for (const ghost of GHOSTS) {
+				const centre = sun.uv.add(axis.mul(ghost.along));
+				const reach = screenUV.sub(centre).mul(aspect).length();
+				const disc = float(1).sub(smoothstep(ghost.radius * 0.7, ghost.radius, reach));
+				ghosts = ghosts.add(vec3(...ghost.tint).mul(disc));
+			}
+			flare.assign(sun.color.mul(aureole.add(ghosts.mul(GHOST_GAIN))).mul(open));
+		});
+		return flare;
+	})();
 }
 
 export class SunTracker {

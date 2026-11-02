@@ -39,7 +39,7 @@ export class Terrain {
 	constructor(
 		shaped: ShapedTerrain,
 		meta: TerrainHeightmapMeta,
-		private readonly lodBias = 0
+		private lodBias = 0
 	) {
 		this.object.name = 'terrain';
 		let minHeight = Number.POSITIVE_INFINITY;
@@ -80,8 +80,9 @@ export class Terrain {
 		return this.ground.material;
 	}
 
-	setDetailDistance(metres: number): void {
-		this.ground.detailFar.value = metres;
+	setQuality(detailFar: number, lodBias: number): void {
+		this.ground.detailFar.value = detailFar;
+		this.lodBias = lodBias;
 	}
 
 	updateSun(sunDirection: Vector3): void {

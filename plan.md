@@ -595,7 +595,7 @@ Este trabajo complementa las fases 8 y 10. Se construye por escalas: el DEM fija
 | **2. Huellas de cantera** ✅ | Cortes y terrazas de extracción en sectores aproximados al sur de Keops y hacia el Campo Central; bloques de descarte y transición al wadi | Siluetas y ubicación contrastadas con la cartografía arqueológica; trazado interpretativo rotulado, sin inventar una planta exacta |
 | **3. Piedra construida** ⬜ | Diferenciar caliza local, revestimiento fino de Tura, granito y mampostería con variación a escala de bloque y de detalle; revisar juntas, roturas, cantos y oclusión | Pirámides, templos y mastabas mantienen sus dimensiones y se leen de cerca y de lejos en «Antes» y «Ahora» |
 | **4. Vida y movimiento** ⬜ | Integrar con la fase 8 en curso: viento, polvo, sombras y pocas aves distantes si aportan escala; evitar duplicar sistemas de partículas | Movimiento sobrio, sin tapar el texto ni crear bucles de animación adicionales; calidad baja y movimiento reducido conservan legibilidad |
-| **5. Perfilado y revisión** ⬜ | Capturas comparables, WebGPU y respaldo WebGL2, móvil, coste por nivel de calidad y limpieza de recursos | Las mejoras no rompen los presupuestos de §8 ni introducen errores de consola o regresiones de navegación |
+| **5. Perfilado y revisión** ✅ | Capturas comparables, WebGPU y respaldo WebGL2, móvil, coste por nivel de calidad y limpieza de recursos | Las mejoras no rompen los presupuestos de §8 ni introducen errores de consola o regresiones de navegación |
 
 Base documental para el bloque 1: [AERA, geología de la Esfinge](https://aeraweb.org/geology-of-the-sphinx/) describe la caliza Mokkatam y las capas de dureza alterna; [Kawae y Kamei, *Geomorphological Aspects at the Giza Plateau*](https://gizamedia.rc.fas.harvard.edu/documents/kawae_jg_120_2011.pdf) documenta fisuras y vaguadas en la formación Maadi al sur y la cantera de Keops al sur de la pirámide; el [Giza Plateau Mapping Project](https://isac.uchicago.edu/sites/oi.uchicago.edu/files/uploads/shared/docs/Publications/Annual-Reports/2016-2017/AR-2016-2017-Giza-Plateau-Mapping.pdf) registra estratos, cortes y zonas de cantera. Ninguna de estas fuentes proporciona un mapa centimétrico del microrelieve añadido: su forma procedural es una representación visual, no una medición arqueológica.
 
@@ -799,3 +799,40 @@ Bloque 15 implementado (`src/lib/data/hotspots.ts`, `src/lib/engine/hotspots.ts`
 - **Tarjeta** no modal con «Punto n de 11», título, texto, rótulo de estimación si procede, fuentes y anterior, siguiente y cerrar. La **lista «Points of interest»** (`Popover` de Bits UI) es la alternativa con teclado.
 - **Cambio respecto al diseño**: en el recorrido guiado las anotaciones se ocultan por completo, en vez de mostrar las del capítulo, para no competir con las tarjetas de capítulo ni con el scroll. También se ocultan mientras vuela el dron.
 - **Verificación**: `pnpm check` y Biome limpios. En el navegador: los marcadores aparecen tras detener el dron (los ocultos, atenuados), el vuelo a la entrada de Keops deja los marcadores 2 y 3 sobre la entrada y el túnel modelados, y la consola no tiene errores. Sin tests automáticos, a petición del propietario.
+
+Bloque 5 implementado: perfilado, optimización y revisión.
+- **Medición**: `?perf` publica la mediana, el p95 y el peor fotograma, más el recuento de geometrías y texturas, en la vista más cara (dron al amanecer).
+  - En la RTX 3050 los tiempos de fotograma quedan cuantizados por el vsync, así que solo dicen si se llega o no a 60 fps.
+  - La gráfica integrada Intel (gen-12lp) sí mide el coste real. Las timestamp queries de GPU no se resuelven con stats-gl sobre el renderer de three (`gpuMs` sale a 0); el campo se mantiene, pero no se usa como dato.
+  - Atención: agent-browser solo usa la RTX si se lanza con `--force_high_performance_gpu`; si no, cae en la integrada.
+- **Diagnóstico por A/B en la gráfica integrada**, en nivel bajo:
+
+  | Caso | Mediana |
+  | --- | --- |
+  | Escena completa | 317 ms |
+  | Sin las normales del suelo | 150 ms |
+  | Suelo de color plano | 33 ms |
+
+  El sombreado del suelo era el 90 % del fotograma.
+- **Optimizaciones**:
+  - Normales del suelo con diferencias hacia delante: 3 evaluaciones por escala en vez de 4.
+  - El detalle (dunas, crestas, cantera) solo se calcula dentro de un radio por nivel (`terrainDetailFar`: 500, 900 y 1 600 m), con ramas `If` reales.
+  - La deriva de arena, las fisuras, las ondas, los canales y los escombros de la cantera solo se calculan donde se ven. El nivel regional del horizonte solo se calcula fuera del DEM.
+  - El ruido de Perlin 3D (`mx_noise_float`) se sustituye por el ruido de valor 2D del proyecto en el color del suelo y en las nubes (cielo y sombras a la vez, para que sigan coincidiendo).
+  - La resolución de render en nivel bajo baja a 0,75.
+  - Resultado en la Intel, nivel bajo: de **317 a 66 ms** (≈ 5 veces más rápido); nivel medio, 233 ms. En la RTX, los cuatro niveles van a 16,7 ms de mediana y 16,8 ms de p95, sin tirones (antes ultra tenía un p95 de 83 ms). El aspecto se comprobó con la misma captura.
+- **Respaldo WebGL2** (`?backend=webgl`, limitado a medio): 60 fps y sin errores; el arranque es lento (~37 s) por la compilación en GL.
+- **Recursos**: tras tres ciclos de cambiar de pirámide, deconstruir, reensamblar y abrir anotaciones, quedan 54 geometrías y 41 texturas, estables desde el primer ciclo (los +5 / +1 iniciales se crean de forma perezosa). No hay fugas ni errores en consola.
+- **Móvil** (390 × 844):
+  - Se corrigió el solape del título con los controles superiores: en móvil el selector de luz muestra solo el icono y se oculta el subtítulo.
+  - El panel de bloques se limita al 42 % de la altura, con scroll interno, y queda por encima de los marcadores.
+  - El indicador de scroll ya no tapa la tarjeta del capítulo.
+- **Error de shader en móvil corregido** («struct OutputType vacío» en un `MeshBasicNodeMaterial`).
+  - Causa: `PassNode.compileAsync` deja el MRT y el destino de la pasada en el renderer durante un `await`. Un toque durante la carga lanzaba el picker de bloques, que dibujaba con ese MRT ajeno; sus texturas no coincidían y la estructura de salida quedaba vacía.
+  - Ahora el picker fija `MRT = null` y restaura el estado anterior, y no hay picking hasta que el bucle de render está en marcha.
+- **Fluidez en móvil**:
+  - Los dispositivos táctiles arrancan directamente en nivel bajo, en vez de en medio. Así se evitan las reconstrucciones en cascada del benchmark, que solo puede bajar.
+  - El nivel bajo deja de usar MSAA 4× en el render de 16 bits y usa un LOD de terreno más grueso (`terrainLodBias` 1).
+  - La aureola del sol, con sus 9 lecturas de profundidad por píxel, solo se evalúa cuando el sol es visible, mediante una rama uniforme.
+- **Tests**: 104 unitarios en verde, y el proyecto de componentes en navegador no tiene tests. La suite E2E de Chromium se interrumpió al cerrarse la sesión anterior y, a petición del propietario, no se volvió a lanzar. `quality.spec.ts` se actualizó al nuevo nivel inicial táctil, sin ejecutarlo.
+- **Límite conocido**: en gráficas integradas modestas el nivel bajo ronda los 15 fps. El siguiente paso sería precalcular en una textura la altura de detalle (dunas, crestas y cantera) en el worker del terreno, para que las normales no evalúen ruido por píxel.

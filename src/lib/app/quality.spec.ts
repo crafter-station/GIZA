@@ -7,7 +7,7 @@ describe('quality tiers', () => {
 		expect(clampTier('ultra', 'webgl2')).toBe('medium');
 		expect(initialTier('webgl2', false)).toBe('medium');
 		expect(initialTier('webgpu', false)).toBe('ultra');
-		expect(initialTier('webgpu', true)).toBe('medium');
+		expect(initialTier('webgpu', true)).toBe('low');
 	});
 
 	it('steps down only when frames are slow', () => {
