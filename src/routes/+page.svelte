@@ -1,6 +1,18 @@
 <script lang="ts">
 import { onMount, untrack } from 'svelte';
 import { parseFlags } from '#lib/app/flags.ts';
+import {
+	createStructuredData,
+	OG_IMAGE_ALT,
+	OG_IMAGE_HEIGHT,
+	OG_IMAGE_PATH,
+	OG_IMAGE_WIDTH,
+	SITE_DESCRIPTION,
+	SITE_LOCALE,
+	SITE_NAME,
+	SITE_TITLE,
+	siteUrl
+} from '#lib/app/site.ts';
 import { engineState, tourState } from '#lib/app/state.ts';
 import { KHAFRE, KHUFU, MENKAURE } from '#lib/data/pyramids.ts';
 import type { Engine } from '#lib/engine/engine.ts';
@@ -19,6 +31,10 @@ import { goto } from '$app/navigation';
 let canvas: HTMLCanvasElement;
 let engine = $state<Engine | null>(null);
 let lighting = $state<LightingMode>('tour');
+
+const canonical = siteUrl('/');
+const ogImage = siteUrl(OG_IMAGE_PATH);
+const jsonLd = JSON.stringify(createStructuredData()).replaceAll('<', '\\u003c');
 
 const pyramids = [
 	{ name: 'Khufu', height: KHUFU.originalHeight.value, base: `${KHUFU.baseSide.value} m` },
@@ -130,8 +146,26 @@ onMount(() => {
 </script>
 
 <svelte:head>
-	<title>Giza - The Pyramids in 3D</title>
-	<meta name="description" content="An educational 3D journey through the pyramids of Giza.">
+	<title>{SITE_TITLE}</title>
+	<meta name="description" content={SITE_DESCRIPTION}>
+	<meta name="robots" content="max-image-preview:large">
+	<link rel="canonical" href={canonical}>
+	<meta property="og:type" content="website">
+	<meta property="og:site_name" content={SITE_NAME}>
+	<meta property="og:title" content={SITE_TITLE}>
+	<meta property="og:description" content={SITE_DESCRIPTION}>
+	<meta property="og:url" content={canonical}>
+	<meta property="og:image" content={ogImage}>
+	<meta property="og:image:width" content={String(OG_IMAGE_WIDTH)}>
+	<meta property="og:image:height" content={String(OG_IMAGE_HEIGHT)}>
+	<meta property="og:image:alt" content={OG_IMAGE_ALT}>
+	<meta property="og:locale" content={SITE_LOCALE}>
+	<meta name="twitter:card" content="summary_large_image">
+	<meta name="twitter:title" content={SITE_TITLE}>
+	<meta name="twitter:description" content={SITE_DESCRIPTION}>
+	<meta name="twitter:image" content={ogImage}>
+	<meta name="twitter:image:alt" content={OG_IMAGE_ALT}>
+	{@html `<script type="application/ld+json">${jsonLd}</script>`}
 </svelte:head>
 
 <canvas
