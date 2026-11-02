@@ -31,6 +31,7 @@ Este documento recoge **decisiones**, no opciones. Si una decisión se cambia, s
 | Audio | Web Audio API: síntesis + un puñado de bucles CC0 |
 | Identidad visual de la UI | Pigmentos de la pintura egipcia como tokens (papiro, tinta, lapislázuli, oro, ocre rojo, fayenza) en `layout.css`; tarjetas de papiro con friso de triángulos y líneas de registro dobles; cartuchos reales con barra *shen*; numerales egipcios (Z15/V20) en capítulos; títulos en Cormorant Garamond, texto en Inter, jeroglíficos en Noto Sans Egyptian Hieroglyphs (todo autoalojado con Fontsource); componentes con Bits UI |
 | Jeroglíficos | Glifos Unicode reales (bloque U+13000) con la fuente Noto Sans Egyptian Hieroglyphs; **nunca** jeroglíficos inventados por IA |
+| SEO y metadatos | `src/lib/app/site.ts` es la fuente única de título, descripción, canonical, Open Graph, Twitter y JSON-LD; iconos y manifest en `static/metadata/` (el `favicon.ico` se queda en la raíz) y la tarjeta social en `/metadata/og.jpg` (1200 × 630). Dominio de producción `giza.crafter.run`, con `sitemap.xml` prerenderizado desde esa constante |
 | Idiomas | **Inglés** (principal y fuente de verdad de los textos) y español como traducción |
 | Calidad | 4 niveles (Ultra / Alta / Media / Baja) elegidos con una prueba de rendimiento durante la carga, más resolución adaptativa |
 | Calidad de código | Biome 2.6 (lint + formato; Svelte en modo experimental) + `svelte-check`; Vitest 4 (unit en Node y componentes en navegador); Playwright (E2E multi-navegador y regresión visual); **agent-browser** (QA visual guiada por agentes) |
@@ -357,6 +358,7 @@ pyramids/
 │   └── photos/ · illustrations/ · textures/   # ver §11
 ├── static/                        # se sirve tal cual
 │   ├── terrain/ ✅                # giza-height.bin + giza-height.json
+│   ├── metadata/ ✅               # iconos PNG, site.webmanifest y og.jpg (pendiente)
 │   └── models/ · textures/ · audio/ · images/ · fonts/ · basis/
 ├── tools/                         # scripts de contenido, ejecutados con `node tools/x.ts`
 │   ├── build-terrain.ts ✅        # DEM → heightmap + verificación de monumentos
@@ -565,7 +567,7 @@ El contenido factual usa **fotos reales con licencia** (Wikimedia Commons, domin
 | 8 | `assets-src/illustrations/sledge.png` | 2400×1600, fondo transparente | Capítulo 7: trineo sobre arena | "Fine ink line illustration of ancient Egyptian workers pulling a stone block on a wooden sledge with ropes while one worker pours water on the sand in front of it, sepia ink on transparent background, respectful realistic proportions, editorial style, no text" |
 | 9 | `assets-src/textures/papyrus-ui.png` | 2048×2048, repetible | Fondo sutil de tarjetas | "Seamless tileable texture of natural papyrus sheet, crossed horizontal and vertical plant fiber strips, warm light beige, even lighting, flat top-down scan, no writing, no symbols" |
 
-✅ Generadas por el usuario (GPT) en PNG dentro de `assets-src/photos/materials/`. El PNG es el **original sin pérdida**: de él salen las variantes responsivas sin recomprimir dos veces. **La conversión la hace el usuario** (WebP + AVIF a 640/960/1600 px en `static/images/`), no los agentes; por eso no existe `tools/build-images.ts`. Al ser imágenes propias no llevan README de licencia. La imagen OG y el preview se capturan desde la propia app en la Fase 11.
+✅ Generadas por el usuario (GPT) en PNG dentro de `assets-src/photos/materials/`. El PNG es el **original sin pérdida**: de él salen las variantes responsivas sin recomprimir dos veces. **La conversión la hace el usuario** (WebP + AVIF a 640/960/1600 px en `static/images/`), no los agentes; por eso no existe `tools/build-images.ts`. Al ser imágenes propias no llevan README de licencia. La imagen OG y el preview se capturan desde la propia app en la Fase 11 y van en `static/metadata/og.jpg` (1200 × 630, ruta ya declarada en el `og:image`).
 
 ---
 
